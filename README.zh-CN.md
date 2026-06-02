@@ -21,6 +21,37 @@
 
 单篇论文约 8 分钟，整个 Zotero 分类一晚跑完——是同一条流水线；批量只是给它喂更长的队列。
 
+**一图速览：**
+
+```text
+  INPUT · 6 modes
+  PDF · arXiv · Zotero collection · folder · YAML queue · .bib / references
+                          │
+                          ▼   build & dedup queue
+  ┌────────────────── PIPELINE · 5 phases  (parallel by default) ──────────────────┐
+  │  1 setup  ▸  2 fan-out ⚡  ▸  3 synthesize  ▸  4 render + bind ⚡  ▸  5 report   │
+  │                                                                                │
+  │  Phase 2 — three subagents at once:                                            │
+  │     A · Opus     twelve questions  +  note body                                │
+  │     B · Sonnet   figures   (arXiv HTML → download → verify)                     │
+  │     C · Sonnet   tables    (pdftoppm → PIL crop — screenshots, never re-typed)  │
+  │                                                                                │
+  │  checkpoint / resume (断点重连): a crashed re-run resumes from the missing phase │
+  └───────────────────────────────────┬────────────────────────────────────────────┘
+                          │   Plan C · three-piece binding
+                          ▼
+  OUTPUT · one self-contained unit per paper   (+ vault-wide indexes)
+  {project}/{method}.md ───────────────── deep main note  (Obsidian entry)
+  {project}/_slides/{method}/
+       ├─ {method}.pdf ───────────────── original paper
+       ├─ {method}.slides.pdf / .pptx ── deck:  PDF + editable PPTX
+       └─ assets/ ────────────────────── figures + table screenshots
+  _MOC/Slide Library.md  +  project reading-queue MOC ──── auto-indexed
+  _concepts/ ──────────────────────────── linked concept graph
+```
+
+> 输入（6 种模式）→ 五阶段流水线（默认并行，Phase 2 三路 subagent 扇出）→ 每篇一个自洽的三件套产物 + vault 级索引。
+
 ---
 
 ## 为什么是 prism？
@@ -233,7 +264,7 @@ deck 流水线（`make a deck`）跑五个阶段——**默认并行**：
 
 ## 致谢
 
-prism 基于 **`paper-reader`**——一个在中文 ML 研究 skill 包里发现的社区 Claude Code skill。**原作者不详**——如果你认得这个 skill，或你就是作者，请[提一个 issue](https://github.com/yangjc27/prism/issues)，我们会正式署名致谢。
+prism 是对 **`paper-reader`** skill 的大幅重构。该 skill 的作者是 **[huangkiki](https://github.com/huangkiki)**，出自 [**dailypaper-skills**](https://github.com/huangkiki/dailypaper-skills) 项目，依 **Apache-2.0** 许可使用。（在开发机上它是被打包在 [ARIS](https://github.com/wanshuiyin/Auto-claude-code-research-in-sleep) skill 合集里发现的。）完整署名与 Apache-2.0 的「修改声明」见 [NOTICE](NOTICE)。
 
 | `paper-reader` 提供了 | prism 新增了 |
 |---|---|

@@ -21,6 +21,35 @@ Point prism at a PDF, an arXiv link, or a Zotero collection. It produces three b
 
 A single paper in roughly 8 minutes, or your whole Zotero collection overnight — it is the same flow; batch just feeds the pipeline a longer queue.
 
+**At a glance:**
+
+```text
+  INPUT · 6 modes
+  PDF · arXiv · Zotero collection · folder · YAML queue · .bib / references
+                          │
+                          ▼   build & dedup queue
+  ┌────────────────── PIPELINE · 5 phases  (parallel by default) ──────────────────┐
+  │  1 setup  ▸  2 fan-out ⚡  ▸  3 synthesize  ▸  4 render + bind ⚡  ▸  5 report   │
+  │                                                                                │
+  │  Phase 2 — three subagents at once:                                            │
+  │     A · Opus     twelve questions  +  note body                                │
+  │     B · Sonnet   figures   (arXiv HTML → download → verify)                     │
+  │     C · Sonnet   tables    (pdftoppm → PIL crop — screenshots, never re-typed)  │
+  │                                                                                │
+  │  checkpoint / resume (断点重连): a crashed re-run resumes from the missing phase │
+  └───────────────────────────────────┬────────────────────────────────────────────┘
+                          │   Plan C · three-piece binding
+                          ▼
+  OUTPUT · one self-contained unit per paper   (+ vault-wide indexes)
+  {project}/{method}.md ───────────────── deep main note  (Obsidian entry)
+  {project}/_slides/{method}/
+       ├─ {method}.pdf ───────────────── original paper
+       ├─ {method}.slides.pdf / .pptx ── deck:  PDF + editable PPTX
+       └─ assets/ ────────────────────── figures + table screenshots
+  _MOC/Slide Library.md  +  project reading-queue MOC ──── auto-indexed
+  _concepts/ ──────────────────────────── linked concept graph
+```
+
 ---
 
 ## Why prism?
@@ -232,7 +261,7 @@ In Obsidian, the deck PDF and the source PDF embed inline at the top of the note
 
 ## Acknowledgments
 
-prism builds on **`paper-reader`**, a community Claude Code skill found in a Chinese ML-research skill pack. The **original author is unknown** — if you recognize this skill, or you are its author, please [open an issue](https://github.com/yangjc27/prism/issues) and we will credit you properly.
+prism is a major rework of the **`paper-reader`** skill by **[huangkiki](https://github.com/huangkiki)**, from the [**dailypaper-skills**](https://github.com/huangkiki/dailypaper-skills) project, used under **Apache-2.0**. (On the dev machine it was encountered bundled inside the [ARIS](https://github.com/wanshuiyin/Auto-claude-code-research-in-sleep) skill collection.) Full attribution and the Apache-2.0 statement of changes are in [NOTICE](NOTICE).
 
 | What `paper-reader` provided | What prism adds |
 |---|---|

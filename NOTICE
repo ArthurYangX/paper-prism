@@ -1,26 +1,44 @@
 prism
 Copyright (c) 2026 yangjc27
-Licensed under the MIT License (see LICENSE).
 
-------------------------------------------------------------------------------
-Attribution
-------------------------------------------------------------------------------
+prism's own original code (the Python helpers, the pipeline, the test suite) is
+licensed under the MIT License (see LICENSE).
 
-prism is a derivative work — a major rework — of "paper-reader", a community
-Claude Code skill distributed in a Chinese ML-research skill pack. The original
-author of paper-reader is unknown.
+==============================================================================
+Attribution — derivative work
+==============================================================================
 
-Reused from paper-reader (reworked and extended):
-  - Zotero integration patterns
+prism is a derivative work — a major rework — of the "paper-reader" skill by
+**huangkiki**, part of the "dailypaper-skills" project, used under the
+Apache License, Version 2.0:
+
+    Source : https://github.com/huangkiki/dailypaper-skills
+    Author : huangkiki
+    License: Apache-2.0
+
+On the development machine, paper-reader was encountered bundled inside the
+ARIS (Auto-Research-In-Sleep) skill collection
+( https://github.com/wanshuiyin/Auto-claude-code-research-in-sleep ), which
+aggregates skills from several authors.
+
+Portions of prism adapted from paper-reader (Apache-2.0):
+  - the paper-note template structure
+  - the Zotero-integration approach
   - the Obsidian concept-library framework
-  - the paper-note template
-  - the multi-source figure fallback strategy
+  - the multi-source figure-fallback strategy
+  - the reading-mode framing (complete / quick / critical analysis)
 
-If you recognize paper-reader, or you are its author, please open an issue at
-https://github.com/yangjc27/prism/issues so we can credit you properly and link
-back to the original.
+Statement of significant changes (per Apache-2.0 §4): prism substantially
+rewrote and extended the above and adds new original work — the twelve-question
+framework with per-answer self-checks, Plan-C three-piece binding, Marp deck
+generation, parallel subagent fan-out, checkpoint/resume, reference/.bib import,
+config-driven i18n, the table-screenshot rule, method-name extraction, and a
+zero-dependency test suite. See CHANGELOG.md and the README "Acknowledgments".
 
-paper-reader's original license was not distributed with the skill pack we
-found it in. prism is released under MIT in good faith; should the original
-author come forward with different terms, we will reconcile attribution and
-licensing accordingly.
+The Apache-2.0 obligations for the adapted portions are honored through this
+NOTICE (attribution + statement of changes). A copy of the Apache License 2.0 is
+available at https://www.apache.org/licenses/LICENSE-2.0 . prism's own additions
+are MIT-licensed; the adapted portions remain under Apache-2.0 by their origin.
+
+If huangkiki (or any other contributor) would like the attribution adjusted,
+please open an issue at https://github.com/yangjc27/prism/issues .

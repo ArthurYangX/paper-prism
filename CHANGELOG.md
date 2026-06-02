@@ -6,9 +6,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.1.0] - 2026-06-03
 
-First public release. prism is a major rework of the community Claude Code skill
-`paper-reader` (original author unknown — see [NOTICE](NOTICE)); the items below
-are what this release adds on top of, or substantially reworks from, that base.
+First public release. prism is a major rework of the `paper-reader` skill by
+huangkiki (from [dailypaper-skills](https://github.com/huangkiki/dailypaper-skills),
+Apache-2.0 — see [NOTICE](NOTICE)); the items below are what this release adds on
+top of, or substantially reworks from, that base.
 
 ### Added
 
