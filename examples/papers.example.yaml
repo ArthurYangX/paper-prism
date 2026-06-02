@@ -1,0 +1,105 @@
+# =============================================================================
+# prism · Example Paper Queue
+# =============================================================================
+# Copy this file, edit the entries you want, then tell Claude Code:
+#   "batch from examples/papers.example.yaml"
+# prism will download any arXiv PDFs automatically and process all papers
+# in parallel (up to `parallel` at a time), writing notes + slides + MOC.
+#
+# IMPORTANT — Quote all arXiv IDs as strings (e.g. arxiv: "2312.00752").
+# Unquoted IDs like 2312.00752 are parsed by YAML as floats and lose leading
+# zeros / decimal precision, silently corrupting the download URL.
+# =============================================================================
+
+# A general-purpose ML reading list of landmark public papers — a clean demo you
+# can run as-is. Swap in your own papers freely.
+project: Demo
+parallel: 4
+notes_strategy: full
+default_priority: P2
+
+papers:
+
+  # ---------------------------------------------------------------------------
+  # The Transformer — the canonical demo paper
+  # ---------------------------------------------------------------------------
+  - id: transformer
+    arxiv: "1706.03762"             # Vaswani et al. 2017 — Attention Is All You Need
+    method_name: Transformer
+    category: "Attention · Sequence Modeling"
+    relevance: "The paper that introduced the Transformer and self-attention"
+    priority: P1
+
+  # ---------------------------------------------------------------------------
+  # State Space Models
+  # ---------------------------------------------------------------------------
+  - id: mamba
+    arxiv: "2312.00752"             # Gu & Dao 2023 — Mamba: Linear-Time Sequence Modeling
+    method_name: Mamba
+    category: "SSM · Selective State Space"
+    relevance: "Linear-time selective-scan alternative to attention"
+    priority: P1
+
+  # ---------------------------------------------------------------------------
+  # Parameter-Efficient Fine-Tuning
+  # ---------------------------------------------------------------------------
+  - id: lora
+    arxiv: "2106.09685"             # Hu et al. 2021 — LoRA
+    method_name: LoRA
+    category: "PEFT · Low-Rank Adaptation"
+    relevance: "Low-rank adapters: fine-tune large models with tiny parameter cost"
+    priority: P2
+
+  # ---------------------------------------------------------------------------
+  # Vision
+  # ---------------------------------------------------------------------------
+  - id: vit
+    arxiv: "2010.11929"             # Dosovitskiy et al. 2020 — ViT
+    method_name: ViT
+    category: "Vision Backbone · Transformer"
+    relevance: "Applies the Transformer directly to image patches"
+    priority: P2
+
+  - id: clip
+    arxiv: "2103.00020"             # Radford et al. 2021 — CLIP
+    method_name: CLIP
+    category: "Vision-Language · Contrastive Pre-training"
+    relevance: "Contrastive image-text pre-training; strong zero-shot transfer"
+    priority: P2
+
+  # ---------------------------------------------------------------------------
+  # Reasoning / LLMs
+  # ---------------------------------------------------------------------------
+  - id: cot
+    arxiv: "2201.11903"             # Wei et al. 2022 — Chain-of-Thought Prompting
+    method_name: CoT
+    category: "LLM · Reasoning · Prompting"
+    relevance: "Eliciting step-by-step reasoning from large language models"
+    priority: P3
+
+  - id: llama
+    arxiv: "2302.13971"             # Touvron et al. 2023 — LLaMA
+    method_name: LLaMA
+    category: "LLM · Open-Source Foundation Model"
+    relevance: "Open, efficient foundation language models"
+    priority: P2
+
+  # ---------------------------------------------------------------------------
+  # LOCAL PDF EXAMPLE — replace the path with your actual file
+  # ---------------------------------------------------------------------------
+  - id: my-local-paper
+    path: ~/papers/yourpaper.pdf    # <-- edit to a real local PDF before running
+    method_name: MyMethod           # <-- edit or remove (auto-extracted if omitted)
+    category: "Your Category"
+    relevance: "Why this paper matters to your project"
+    priority: P2
+    skip: true                      # set to false (or remove) when path is real
+
+  # ---------------------------------------------------------------------------
+  # ZOTERO EXAMPLE — search by title keyword or Zotero item key
+  # ---------------------------------------------------------------------------
+  # - id: zotero-paper
+  #   zotero: "Attention Is All You Need"   # title keyword or exact Zotero item key
+  #   category: "Transformer · Attention"
+  #   relevance: "Transformer architecture reference"
+  #   priority: P2

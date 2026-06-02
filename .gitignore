@@ -1,0 +1,23 @@
+# --- prism private config (CRITICAL: never commit a user's vault path) ---
+skills/prism/assets/config.json
+# keep the template tracked:
+!skills/prism/assets/config.example.json
+
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+
+# --- prism scratch / generated artifacts ---
+/tmp/
+prism_progress.log
+prism_errors.log
+
+# --- OS / editor ---
+.DS_Store
+.idea/
+.vscode/
+*.swp

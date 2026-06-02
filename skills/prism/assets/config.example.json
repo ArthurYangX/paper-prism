@@ -1,0 +1,24 @@
+{
+  "_comment": "Copy to config.json and edit. config.json is gitignored. All paths accept ~. See docs/configuration in the README.",
+
+  "vault_path": "~/Documents/Obsidian Vault",
+  "notes_folder": "papers",
+  "default_project": "Research",
+  "concepts_folder": "_concepts",
+  "moc_folder": "_MOC",
+  "slides_subdir": "_slides",
+
+  "zotero_db": "~/Zotero/zotero.sqlite",
+  "zotero_storage": "~/Zotero/storage",
+
+  "lang": "en",
+  "labels": {},
+
+  "models": { "analysis": "opus", "figures": "sonnet", "tables": "sonnet" },
+
+  "parallel": 4,
+  "concept_budget": 8,
+
+  "git_commit": false,
+  "git_push": false
+}
