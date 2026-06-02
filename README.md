@@ -7,6 +7,8 @@
 ![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)
 ![tests 76 passing](https://img.shields.io/badge/tests-76%20passing-brightgreen)
 
+**English** · [简体中文](README.zh-CN.md)
+
 ---
 
 ## What it does
@@ -102,6 +104,25 @@ papers:
 ```
 
 Each paper needs exactly one of `path` / `arxiv` / `zotero`. Full spec: `skills/prism/assets/queue-format.md`.
+
+### Six input modes — same pipeline, different queue source
+
+| Mode | What you say | Source |
+|------|--------------|--------|
+| 1 · Single | `read X.pdf` · `make a deck for X` | one PDF / arXiv id / Zotero title |
+| 2 · Folder | `batch ~/papers/` | every `*.pdf` in a folder |
+| 3 · Zotero collection | `process my Zotero "X" collection` | a Zotero collection (recursive) |
+| 4 · YAML queue | `batch from papers.yaml` | a git-versionable queue file (recommended) |
+| 5 · Zotero query | `process Zotero papers tagged X` | a Zotero tag/query |
+| 6 · References / `.bib` | `process this paper's references` · `batch from refs.bib` | a paper's bibliography or a LaTeX `.bib` |
+
+Mode 6 turns a whole citation list into a queue — a zero-dependency BibTeX parser
+plus arXiv-id/DOI extraction (`skills/prism/assets/prism_refs.py`):
+
+```bash
+python3 skills/prism/assets/prism_refs.py bib refs.bib      # .bib  → queue
+python3 skills/prism/assets/prism_refs.py pdf paper.pdf      # PDF refs → queue
+```
 
 ---
 
