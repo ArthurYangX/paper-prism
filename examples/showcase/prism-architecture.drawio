@@ -1,0 +1,131 @@
+<mxfile host="app.diagrams.net" agent="prism" version="24.0.0">
+  <diagram name="prism architecture" id="prism-arch-1">
+    <mxGraphModel dx="1280" dy="760" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="720" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="prism — one paper, refracted" style="text;html=1;align=left;verticalAlign=middle;fontSize=22;fontStyle=1;fontColor=#5B21B6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="600" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="6 input modes  →  5-phase pipeline (parallel)  →  three-piece bound output + indexes" style="text;html=1;align=left;verticalAlign=middle;fontSize=12;fontColor=#6B7280;" vertex="1" parent="1">
+          <mxGeometry x="40" y="52" width="700" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== INPUT ===================== -->
+        <mxCell id="inGroup" value="INPUT · 6 modes" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAF2FF;strokeColor=#3B6FB6;fontColor=#1F3A5F;fontStyle=1;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="40" y="90" width="240" height="430" as="geometry" />
+        </mxCell>
+        <mxCell id="in1" value="① Single — PDF / arXiv / Zotero title" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#3B6FB6;fontColor=#1F3A5F;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="132" width="200" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="in2" value="② Folder of PDFs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#3B6FB6;fontColor=#1F3A5F;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="186" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="in3" value="③ Zotero collection (recursive)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#3B6FB6;fontColor=#1F3A5F;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="236" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="in4" value="④ YAML queue  (recommended)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#3B6FB6;fontColor=#1F3A5F;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="286" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="in5" value="⑤ Zotero query / tag" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#3B6FB6;fontColor=#1F3A5F;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="336" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="in6" value="⑥ References / .bib  (a paper's bibliography)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#3B6FB6;fontColor=#1F3A5F;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="386" width="200" height="48" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== PIPELINE ===================== -->
+        <mxCell id="pipeGroup" value="PIPELINE · 5 phases — parallel by default" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5EEFF;strokeColor=#7C3AED;fontColor=#4C1D95;fontStyle=1;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="360" y="80" width="560" height="590" as="geometry" />
+        </mxCell>
+
+        <mxCell id="p1" value="1 · Setup&#10;method · arxiv_id · paths · mkdir" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7C3AED;fontColor=#4C1D95;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="400" y="120" width="220" height="46" as="geometry" />
+        </mxCell>
+
+        <mxCell id="p2" value="Phase 2 · 3-way subagent fan-out  ⚡" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FBF0FF;strokeColor=#9D4EDD;fontColor=#6B21A8;fontStyle=1;verticalAlign=top;spacingTop=6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="400" y="190" width="500" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="pA" value="A · Opus  —  twelve questions  +  note body" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE3FF;strokeColor=#7C3AED;fontColor=#4C1D95;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="420" y="232" width="460" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="pB" value="B · Sonnet  —  figures: arXiv HTML → download → verify" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#9D4EDD;fontColor=#6B21A8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="420" y="274" width="460" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="pC" value="C · Sonnet  —  tables: pdftoppm → PIL crop (screenshots)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#9D4EDD;fontColor=#6B21A8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="420" y="316" width="460" height="34" as="geometry" />
+        </mxCell>
+
+        <mxCell id="p3" value="3 · Synthesize&#10;fill note + slide templates" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7C3AED;fontColor=#4C1D95;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="400" y="390" width="220" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="p4" value="4 · Render + bind  ⚡&#10;marp → PDF + PPTX · resources · MOCs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7C3AED;fontColor=#4C1D95;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="400" y="456" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="p5" value="5 · Report&#10;verify · cleanup" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7C3AED;fontColor=#4C1D95;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="400" y="526" width="220" height="46" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ckpt" value="checkpoint / resume  (断点重连)&#10;&#10;per-project state file + per-paper durable cache&#10;a re-run skips done papers and resumes a&#10;half-finished one from its MISSING phase" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#FFF7E6;strokeColor=#D97706;fontColor=#92400E;fontSize=11;align=left;spacingLeft=10;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="650" y="392" width="240" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== OUTPUT ===================== -->
+        <mxCell id="outGroup" value="OUTPUT · three-piece bound unit + indexes" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAF8F0;strokeColor=#2E9E6B;fontColor=#14532D;fontStyle=1;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="90" width="270" height="430" as="geometry" />
+        </mxCell>
+        <mxCell id="o1" value="{method}.md&#10;deep main note · Obsidian entry" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2E9E6B;fontColor=#14532D;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="128" width="230" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="o2" value="{method}.slides.pdf / .pptx&#10;deck — PDF + editable PPTX" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2E9E6B;fontColor=#14532D;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="182" width="230" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="o3" value="{method}.pdf&#10;original paper (copied in)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2E9E6B;fontColor=#14532D;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="236" width="230" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="o4" value="assets/&#10;figures + table screenshots" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2E9E6B;fontColor=#14532D;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="290" width="230" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="o5" value="_MOC/&#10;Slide Library + project reading queue" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F4FBF7;strokeColor=#2E9E6B;fontColor=#14532D;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="344" width="230" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="o6" value="_concepts/&#10;linked concept graph" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F4FBF7;strokeColor=#2E9E6B;fontColor=#14532D;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="398" width="230" height="44" as="geometry" />
+        </mxCell>
+
+        <!-- bottom caption -->
+        <mxCell id="loopcap" value="/loop — same flow for 1 paper or 1000 · scan → dedup → spawn N coordinators → stop when empty · failures isolated, never block" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#6B7280;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="360" y="678" width="560" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== EDGES ===================== -->
+        <mxCell id="eIn" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeColor=#3B6FB6;strokeWidth=2;fontColor=#3B6FB6;fontSize=10;" edge="1" parent="1" source="inGroup" target="p1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eInlbl" value="build + dedup queue" style="edgeLabel;html=1;align=center;fontSize=10;fontColor=#3B6FB6;" connectable="0" vertex="1" parent="eIn">
+          <mxGeometry x="-0.1" y="-1" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeColor=#7C3AED;strokeWidth=2;" edge="1" parent="1" source="p1" target="p2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e23" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeColor=#7C3AED;strokeWidth=2;" edge="1" parent="1" source="p2" target="p3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e34" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeColor=#7C3AED;strokeWidth=2;" edge="1" parent="1" source="p3" target="p4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e45" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeColor=#7C3AED;strokeWidth=2;" edge="1" parent="1" source="p4" target="p5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eOut" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeColor=#2E9E6B;strokeWidth=2;fontColor=#2E9E6B;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="p4" target="outGroup">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eOutlbl" value="Plan C · three-piece binding" style="edgeLabel;html=1;align=center;fontSize=10;fontColor=#2E9E6B;" connectable="0" vertex="1" parent="eOut">
+          <mxGeometry x="-0.1" y="-1" relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
