@@ -106,7 +106,7 @@ In batch mode paper-prism runs a condensed five-question pass (Q1 + Q3 + Q4-brie
 
 ## Quick start
 
-These are things you **say to Claude Code** in a session where the paper-prism skill is installed — not shell commands.
+These are things you **say to Claude Code** in a session where the paper-prism skill is installed — not shell commands. paper-prism auto-triggers when your message matches its description (the phrases below); you can also invoke it explicitly with **`/paper-prism`**.
 
 **Single paper → note (default), or the full deck package:**
 
