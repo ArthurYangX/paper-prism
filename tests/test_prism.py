@@ -70,7 +70,9 @@ def test_resources_block(tmp):
     c1 = note.read_text()
     check("stub created", note.exists())
     check("resources heading present", "## Resources" in c1)
-    check("paper embed", "![[_slides/Mamba/Mamba.pdf]]" in c1)
+    check("paper embed (bare filename)", "![[Mamba.pdf]]" in c1)
+    check("slides embed (bare filename)", "![[Mamba.slides.pdf]]" in c1)
+    check("embed is NOT a partial path Obsidian can't resolve", "![[_slides/" not in c1)
     check("arxiv line", "2312.00752" in c1)
 
     # idempotent update on a hand-written note with user prose + custom heading

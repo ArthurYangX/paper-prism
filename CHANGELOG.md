@@ -70,7 +70,13 @@ Three review passes (codex, an integral review, then a perf/robustness review) �
   still read "153 checks" are synced. `download_figures` also gains a consecutive-failure
   circuit breaker, so a dead/429-ing arXiv can't stall a many-figure paper with
   per-figure retry-sleep.
-- Tests: 132 → **184** (zero external dependencies).
+- **Obsidian resources embed** — `inject_resources_block` linked the paper PDF and
+  deck as `![[_slides/{method}/{method}.pdf]]`, a partial path Obsidian reads as
+  vault-root-relative and fails to resolve (the deck lives under
+  `{notes}/{project}/_slides/`, so the vault root has no `_slides/`). PDFs now embed
+  by bare name `![[{method}.pdf]]`, exactly like the in-note figure embeds, which
+  Obsidian resolves by filename from anywhere in the vault.
+- Tests: 132 → **186** (zero external dependencies).
 
 ## [0.1.0] - 2026-06-03
 

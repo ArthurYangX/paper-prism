@@ -18,8 +18,8 @@ created: 2026-06-03
 <!-- paper-prism:resources:start -->
 ## Resources
 
-- 📄 Paper: ![[_slides/Transformer/Transformer.pdf]]
-- 🎬 Slides: ![[_slides/Transformer/Transformer.slides.pdf]]
+- 📄 Paper: ![[Transformer.pdf]]
+- 🎬 Slides: ![[Transformer.slides.pdf]]
 - 🌐 arXiv: https://arxiv.org/abs/1706.03762
 - 💻 Code: https://github.com/tensorflow/tensor2tensor
 - 📁 Project: [[00 Showcase]]

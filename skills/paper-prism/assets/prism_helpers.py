@@ -416,15 +416,18 @@ def inject_resources_block(
     L = get_labels(cfg)
     method_name = safe_name(method_name)
     project = safe_name(project) if project else ""
-    sub = cfg["slides_subdir"]
-    base = f"{sub}/{method_name}"
     heading = L["resources_heading"]
 
+    # Obsidian resolves an `![[...]]` embed by FILE NAME (or a full vault-root path),
+    # NOT by a partial path like `_slides/{method}/...` — that partial form is read as
+    # vault-root-relative and silently fails, because the deck actually lives under
+    # {notes}/{project}/_slides/{method}/. The figures in the note body already embed
+    # by bare name, so match them: `![[{method}.pdf]]` resolves from anywhere in the vault.
     lines = [
         heading,
         "",
-        f"- {L['label_paper']}: ![[{base}/{method_name}.pdf]]",
-        f"- {L['label_slides']}: ![[{base}/{method_name}.slides.pdf]]",
+        f"- {L['label_paper']}: ![[{method_name}.pdf]]",
+        f"- {L['label_slides']}: ![[{method_name}.slides.pdf]]",
     ]
     if zotero_key:
         lines.append(f"- {L['label_zotero']}: [Open in Zotero (annotations)](zotero://select/library/items/{zotero_key})")

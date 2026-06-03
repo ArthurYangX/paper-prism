@@ -18,8 +18,8 @@ created: 2026-06-03
 <!-- paper-prism:resources:start -->
 ## Resources
 
-- 📄 Paper: ![[_slides/Mamba/Mamba.pdf]]
-- 🎬 Slides: ![[_slides/Mamba/Mamba.slides.pdf]]
+- 📄 Paper: ![[Mamba.pdf]]
+- 🎬 Slides: ![[Mamba.slides.pdf]]
 - 🌐 arXiv: https://arxiv.org/abs/2312.00752
 - 💻 Code: https://github.com/state-spaces/mamba
 - 📁 Project: [[00 Showcase]]
