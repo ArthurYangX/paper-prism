@@ -82,25 +82,34 @@ fi
 # 3. Copy config.example.json -> config.json if the user doesn't have one yet.
 # ---------------------------------------------------------------------------
 if [[ ! -f "$CONFIG_DST" ]]; then
-    echo ""
-    echo "  Copying config.example.json → config.json ..."
     cp "$CONFIG_SRC" "$CONFIG_DST"
-    echo "  ✓  Created: $CONFIG_DST"
     echo ""
-    echo "  ┌─────────────────────────────────────────────────────────────┐"
-    echo "  │  ACTION REQUIRED: edit config.json before using paper-prism.      │"
-    echo "  │                                                               │"
-    echo "  │  Key fields to set:                                          │"
-    echo "  │    vault_path    — absolute path to your Obsidian vault      │"
-    echo "  │    zotero_db     — path to ~/Zotero/zotero.sqlite            │"
-    echo "  │    zotero_storage — path to ~/Zotero/storage/               │"
-    echo "  │                                                               │"
-    echo "  │  vault_path and zotero_* may be left as defaults if you      │"
-    echo "  │  don't use those features yet.                               │"
-    echo "  │                                                               │"
-    echo "  │  Open with:                                                   │"
-    echo "  │    \$EDITOR $CONFIG_DST"
-    echo "  └─────────────────────────────────────────────────────────────┘"
+    echo "  ✓  Created: $CONFIG_DST"
+    # vault_path is the ONE setting that matters. Everything else (Zotero paths,
+    # models, parallel, lang, ...) has a working default. Capture vault_path here
+    # so the user never has to open the JSON by hand.
+    DEFAULT_VAULT="$HOME/Documents/Obsidian Vault"
+    if [[ -t 0 && -t 1 ]]; then
+        echo ""
+        read -r -p "  Your Obsidian vault path [$DEFAULT_VAULT] (blank = skip, set later): " VAULT_IN
+        VAULT_PATH="${VAULT_IN:-$DEFAULT_VAULT}"
+        if [[ -n "$VAULT_IN" || -d "$DEFAULT_VAULT" ]]; then
+            python3 - "$CONFIG_DST" "$VAULT_PATH" <<'PY'
+import json, sys
+path, vault = sys.argv[1], sys.argv[2]
+cfg = json.load(open(path))
+cfg["vault_path"] = vault
+with open(path, "w") as f:
+    json.dump(cfg, f, indent=2, ensure_ascii=False)
+    f.write("\n")
+print(f"  ✓  vault_path set to: {vault}")
+PY
+        else
+            echo "  ℹ  No vault set yet — edit vault_path in $CONFIG_DST when you have one."
+        fi
+    else
+        echo "  (non-interactive run: vault_path left at its default — edit $CONFIG_DST to change it)"
+    fi
 else
     echo "  ✓  config.json already exists — not overwriting."
 fi
@@ -141,8 +150,9 @@ echo "    \"analyze this paper: arxiv:2312.00752\""
 echo "    \"batch process ~/papers/ into project ViT\""
 echo "    \"read my Zotero 'CIL' collection\""
 echo ""
-echo "  If you haven't edited config.json yet, do that first:"
-echo "    \$EDITOR $CONFIG_DST"
+echo "  Tune anything else (language, Zotero paths, parallelism) in:"
+echo "    $CONFIG_DST"
+echo "    — optional; every field has a working default."
 echo ""
 echo "  Full documentation: $SCRIPT_DIR/README.md"
 echo ""

@@ -9,6 +9,10 @@
 
 **English** · [简体中文](README.zh-CN.md)
 
+<p align="center">
+  <img src="examples/showcase/paper-prism-hero.png" width="100%" alt="paper-prism — 7 input modes → a 5-phase parallel pipeline (Opus + Sonnet fan-out) → three-piece bound Obsidian output (deep note + slide deck + concept graph)">
+</p>
+
 ---
 
 ## What it does
@@ -21,35 +25,6 @@ Point paper-prism at a PDF, an arXiv link, or a Zotero collection. It produces t
 
 A single paper in roughly 8 minutes, or your whole Zotero collection overnight — it is the same flow; batch just feeds the pipeline a longer queue.
 
-**At a glance:**
-
-```text
-  INPUT · 7 modes
-  PDF · arXiv · Zotero · folder · YAML queue · .bib/references · discovery feed
-                          │
-                          ▼   build & dedup queue
-  ┌────────────────── PIPELINE · 5 phases  (parallel by default) ──────────────────┐
-  │  1 setup  ▸  2 fan-out ⚡  ▸  3 synthesize  ▸  4 render + bind ⚡  ▸  5 report   │
-  │                                                                                │
-  │  Phase 2 — three subagents at once:                                            │
-  │     A · Opus     twelve questions  +  note body                                │
-  │     B · Sonnet   figures   (arXiv HTML → download → verify)                     │
-  │     C · Sonnet   tables    (pdftoppm → PIL crop — screenshots, never re-typed)  │
-  │                                                                                │
-  │  checkpoint / resume (断点重连): a crashed re-run resumes from the missing phase │
-  └───────────────────────────────────┬────────────────────────────────────────────┘
-                          │   Plan C · three-piece binding
-                          ▼
-  OUTPUT · one self-contained unit per paper   (+ vault-wide indexes)
-  {project}/{method}.md ───────────────── deep main note  (Obsidian entry)
-  {project}/_slides/{method}/
-       ├─ {method}.pdf ───────────────── original paper
-       ├─ {method}.slides.pdf / .pptx ── deck:  PDF + editable PPTX
-       └─ assets/ ────────────────────── figures + table screenshots
-  _MOC/Slide Library.md  +  project reading-queue MOC ──── auto-indexed
-  _concepts/ ──────────────────────────── linked concept graph
-```
-
 ---
 
 ## Install
@@ -57,11 +32,10 @@ A single paper in roughly 8 minutes, or your whole Zotero collection overnight �
 ```bash
 git clone https://github.com/ArthurYangX/paper-prism.git
 cd paper-prism
-./install.sh          # symlinks the skill, copies config.example.json → config.json, runs the dependency doctor
-# then edit skills/paper-prism/assets/config.json — at minimum set vault_path
+./install.sh          # symlinks the skill, asks once for your vault path, runs the dependency doctor
 ```
 
-`install.sh` symlinks `skills/paper-prism/` into `~/.claude/skills/` so Claude Code discovers it (the slash command becomes `/paper-prism`), then runs a dependency doctor that checks for the tools below.
+That's the whole setup. `install.sh` symlinks `skills/paper-prism/` into `~/.claude/skills/` (Claude Code then discovers it — the slash command becomes `/paper-prism`), **prompts once for your Obsidian vault path** (the only required setting; everything else has a working default), and runs a dependency doctor for the tools below. No JSON to hand-edit.
 
 **Dependencies:**
 
@@ -137,11 +111,7 @@ Each paper needs exactly one of `path` / `arxiv` / `zotero`. Full spec: `skills/
 | 6 · References / `.bib` | `process this paper's references` · `batch from refs.bib` | a paper's bibliography or a LaTeX `.bib` |
 | 7 · Discovery source | `today's papers → deck the top 5` · `batch from digest.json` | a recommender feed (daily digest, topic search, …) |
 
-Modes 1–6 are *you point at papers you have*; **Mode 7 is *a discovery source
-brings papers to you***. paper-prism doesn't scrape or score — that stays in separate
-upstream skills (a daily-digest, a lit-search, Semantic Scholar, arXiv). They just
-emit a JSON list of `{title, arxiv?, score?, why?}` (or a `.bib`); paper-prism ingests it
-and refracts the keepers, so paper-prism stays a focused deep-processing backend.
+Modes 1–6 = *you point at papers you have*; **Mode 7 = a discovery source brings papers to you** — paper-prism never scrapes or scores (that stays in separate upstream skills: a daily digest, a lit-search, Semantic Scholar, arXiv). They emit a JSON list of `{title, arxiv?, score?, why?}` (or a `.bib`); paper-prism ingests it and refracts the keepers. References, `.bib`, and discovery feeds convert to a queue via `prism_refs.py`:
 
 ```bash
 python3 skills/paper-prism/assets/prism_refs.py bib  refs.bib            # .bib       → queue
@@ -162,7 +132,7 @@ Two public papers, refracted end-to-end into full paper-prism packages — main 
 
 <p align="center">
   <img src="examples/showcase/run-attention/preview/02-architecture.png" width="49%" alt="Transformer deck — architecture page">
-  <img src="examples/showcase/run-attention/preview/mamba-03-downstream.png" width="49%" alt="Mamba deck — results page">
+  <img src="examples/showcase/run-attention/preview/mamba-02-overview.png" width="49%" alt="Mamba deck — Selective SSM architecture page">
 </p>
 
 Both share one `Showcase` reading-queue MOC and the global Slide Library — index accumulation across papers, demonstrated. The rendered PDFs/PPTX are git-ignored to keep the repo light; regenerate each with one `marp` command (see the showcase [README](examples/showcase/run-attention/README.md)).
@@ -175,26 +145,13 @@ Both share one `Showcase` reading-queue MOC and the global Slide Library — ind
 
 ## How it works
 
-The deck pipeline (`make a deck`) runs five phases — **parallel by default**:
-
-```text
-Phase 1 · Setup            resolve config, method-name, arxiv_id, paths; mkdir deck folder   (serial, <10s)
-Phase 2 · 3-way fan-out ⚡  Agent A (Opus): twelve-Q + note body
-                           Agent B (Sonnet): arXiv HTML → download → verify figures
-                           Agent C (Sonnet): pdftoppm → PIL-crop tables
-Phase 3 · Synthesize       fill the slide template + the note template from the 3 artifacts   (serial)
-Phase 4 · Render + bind ⚡  marp → PDF + PPTX · copy source PDF in · resources block ·
-                           Slide Library row · project MOC row                                (parallel)
-Phase 5 · Report           verify 5 artifacts + MOC rows · clean /tmp · print paths
-```
-
-The main agent acts as a coordinator: it fans work out to the three subagents (Phase 2), then reconciles their output and assembles the note + deck (Phase 3) — `main → subagents → main`. Batches (folder / Zotero / YAML) wrap this in a `/loop` master prompt: scan → dedup against existing artifacts → each iteration spawns `parallel` paper-coordinators → stop when the queue empties. Failures go to an error log and **never block** the next paper. See `docs/architecture.md` for the full design.
+The deck pipeline (`make a deck`) runs **five phases, parallel by default** — the "At a glance" diagram above shows them. The main agent acts as a coordinator: it fans work out to the three subagents (Phase 2), then reconciles their output and assembles the note + deck (Phase 3) — `main → subagents → main`. Batches (folder / Zotero / YAML) wrap this in a `/loop` master prompt: scan → dedup against existing artifacts → each iteration spawns `parallel` paper-coordinators → stop when the queue empties. Failures go to an error log and **never block** the next paper. Full phase-by-phase breakdown with timings: `docs/architecture.md`.
 
 ---
 
 ## Configuration
 
-`install.sh` creates `config.json` from `config.example.json` (gitignored — it holds your private vault path); edit it to taste (re-running `install.sh` never overwrites an existing one). Config resolves in this order, first hit wins:
+You're already configured — `install.sh` created `config.json` and set your `vault_path`. **This section is optional tuning.** (`config.json` is gitignored — it holds your private vault path; re-running `install.sh` never overwrites it.) Config resolves in this order, first hit wins:
 
 1. `$PRISM_CONFIG` — explicit path to a JSON file
 2. `skills/paper-prism/assets/config.json` — next to the module

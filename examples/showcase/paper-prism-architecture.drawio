@@ -7,11 +7,11 @@
         <mxCell id="title" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=22;fontStyle=1;fontColor=#5B21B6;" value="paper-prism — one paper, refracted" vertex="1">
           <mxGeometry height="34" width="600" x="40" y="20" as="geometry" />
         </mxCell>
-        <mxCell id="subtitle" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=12;fontColor=#6B7280;" value="6 input modes  →  5-phase pipeline (parallel)  →  three-piece bound output + indexes" vertex="1">
+        <mxCell id="subtitle" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=12;fontColor=#6B7280;" value="7 input modes  →  5-phase pipeline (parallel)  →  three-piece bound output + indexes" vertex="1">
           <mxGeometry height="20" width="700" x="40" y="52" as="geometry" />
         </mxCell>
-        <mxCell id="inGroup" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAF2FF;strokeColor=#3B6FB6;fontColor=#1F3A5F;fontStyle=1;verticalAlign=top;spacingTop=8;" value="INPUT · 6 modes" vertex="1">
-          <mxGeometry height="430" width="240" x="40" y="90" as="geometry" />
+        <mxCell id="inGroup" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAF2FF;strokeColor=#3B6FB6;fontColor=#1F3A5F;fontStyle=1;verticalAlign=top;spacingTop=8;" value="INPUT · 7 modes" vertex="1">
+          <mxGeometry height="468" width="240" x="40" y="90" as="geometry" />
         </mxCell>
         <mxCell id="in1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#3B6FB6;fontColor=#1F3A5F;fontSize=11;" value="① Single — PDF / arXiv / Zotero title" vertex="1">
           <mxGeometry height="44" width="200" x="60" y="132" as="geometry" />
@@ -29,7 +29,10 @@
           <mxGeometry height="40" width="200" x="60" y="336" as="geometry" />
         </mxCell>
         <mxCell id="in6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#3B6FB6;fontColor=#1F3A5F;fontSize=11;" value="⑥ References / .bib  (a paper&#39;s bibliography)" vertex="1">
-          <mxGeometry height="48" width="200" x="60" y="386" as="geometry" />
+          <mxGeometry height="44" width="200" x="60" y="386" as="geometry" />
+        </mxCell>
+        <mxCell id="in7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#3B6FB6;fontColor=#1F3A5F;fontSize=11;fontStyle=2;" value="⑦ Discovery source — daily digest / search feed → top-K" vertex="1">
+          <mxGeometry height="44" width="200" x="60" y="436" as="geometry" />
         </mxCell>
         <mxCell id="pipeGroup" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5EEFF;strokeColor=#7C3AED;fontColor=#4C1D95;fontStyle=1;verticalAlign=top;spacingTop=8;" value="PIPELINE · 5 phases — parallel by default" vertex="1">
           <mxGeometry height="590" width="560" x="360" y="80" as="geometry" />

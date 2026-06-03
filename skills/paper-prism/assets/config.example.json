@@ -1,24 +1,5 @@
 {
-  "_comment": "Copy to config.json and edit. config.json is gitignored. All paths accept ~. See docs/configuration in the README.",
-
+  "_comment": "paper-prism config — only vault_path is required, and install.sh sets it for you. Every other setting has a working default; see the Configuration table in the README to override any of them (notes_folder, default_project, zotero_db/zotero_storage, models, parallel, concept_budget, lang, labels, git_commit/git_push). Paths accept ~.",
   "vault_path": "~/Documents/Obsidian Vault",
-  "notes_folder": "papers",
-  "default_project": "Research",
-  "concepts_folder": "_concepts",
-  "moc_folder": "_MOC",
-  "slides_subdir": "_slides",
-
-  "zotero_db": "~/Zotero/zotero.sqlite",
-  "zotero_storage": "~/Zotero/storage",
-
-  "lang": "en",
-  "labels": {},
-
-  "models": { "analysis": "opus", "figures": "sonnet", "tables": "sonnet" },
-
-  "parallel": 4,
-  "concept_budget": 8,
-
-  "git_commit": false,
-  "git_push": false
+  "lang": "en"
 }
