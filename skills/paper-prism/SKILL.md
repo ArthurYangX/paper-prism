@@ -45,6 +45,7 @@ python3 skills/paper-prism/assets/prism_config.py   # prints resolved config + l
 In Python the pipeline uses:
 
 ```python
+import sys; sys.path.insert(0, "skills/paper-prism/assets")  # so the imports resolve from the repo root
 from prism_config import load_config, get_labels, notes_path, project_path, \
     slides_moc_path, project_moc_path
 cfg = load_config()        # vault_path, notes_folder, default_project, zotero_*, lang, models, ...
@@ -69,7 +70,7 @@ differs.
 | **2 · Folder** | `batch /path/` / `处理 /path/ 下所有 PDF` | `folder_to_queue()` | 5–100 |
 | **3 · Zotero collection** | `process my Zotero "CIL" collection` / `读 Zotero 里 X 分类` | `zotero.zotero_collection_to_queue()` | 10–200 |
 | **4 · YAML queue file** | `batch from papers.yaml` | `parse_paper_queue()` | reproducible |
-| **5 · Zotero query** | `process Zotero papers tagged X` | SQL → queue | filtered |
+| **5 · Zotero query** | `process Zotero papers tagged X` | `zotero.zotero_query_to_queue()` | filtered |
 | **6 · References / .bib** | `process this paper's references` / `batch from refs.bib` | `prism_refs.parse_bib()` / `parse_references_from_text()` | a citation neighbourhood |
 | **7 · Discovery source** | `today's papers → deck the top 5` / `find papers on X → process them` / `batch from digest.json` | `prism_refs.load_discovery()` → `discovery_to_queue()` | a recommender feed |
 
@@ -338,8 +339,8 @@ Screenshot SOP:
 
 ```bash
 python3 skills/paper-prism/assets/prism_helpers.py render paper.pdf /tmp {start} {end} {method}_page
-python3 -c "from prism_helpers import crop_region; crop_region('/tmp/{method}_page-NN.png', \
-  'assets/{method}_table_K.png', (left, top, right, bottom))"
+PYTHONPATH=skills/paper-prism/assets python3 -c "from prism_helpers import crop_region; \
+  crop_region('/tmp/{method}_page-NN.png', 'assets/{method}_table_K.png', (left, top, right, bottom))"
 ```
 
 (A4/Letter at 200 DPI ≈ 1700×2200; single-column table ≈ 520–800 px wide,
@@ -421,6 +422,7 @@ the note's resources block so they can jump to the Zotero item and read its
 plugins, zero Better-BibTeX citekey** — just the stable 8-char item key.
 
 ```python
+import sys; sys.path.insert(0, "skills/paper-prism/assets")  # resolve imports from the repo root
 from zotero import find_item_key
 key = find_item_key(title, collection_id=cid)   # read-only; collection_id optional but recommended; None if not found
 if key:
@@ -523,6 +525,6 @@ Inspect anytime: `python3 skills/paper-prism/assets/prism_state.py status {proje
 - `assets/prism_helpers.py` — render / crop / figures / marp / binding / queue functions
 - `assets/prism_state.py` — checkpoint / resume: state file, durable cache, resume_plan
 - `assets/prism_refs.py` — reference/.bib import (Mode 6) + discovery-source ingestion (Mode 7): parse_bib, PDF refs, load_discovery → queue
-- `assets/zotero.py` — read-only Zotero integration + collection→queue
+- `assets/zotero.py` — read-only Zotero integration + collection→queue + tag/query→queue (Mode 5)
 - `assets/prism_config.py` — config + i18n labels
 ```

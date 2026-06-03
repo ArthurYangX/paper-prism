@@ -5,7 +5,7 @@
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 ![Claude Code skill](https://img.shields.io/badge/Claude%20Code-skill-8A2BE2)
 ![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)
-![tests 153 passing](https://img.shields.io/badge/tests-153%20passing-brightgreen)
+![tests 184 passing](https://img.shields.io/badge/tests-184%20passing-brightgreen)
 
 **English** · [简体中文](README.zh-CN.md)
 
@@ -57,9 +57,8 @@ A single paper in roughly 8 minutes, or your whole Zotero collection overnight �
 ```bash
 git clone https://github.com/ArthurYangX/paper-prism.git
 cd paper-prism
-./install.sh          # symlinks the skill into ~/.claude/skills/ and runs the dependency doctor
-cp skills/paper-prism/assets/config.example.json skills/paper-prism/assets/config.json
-# then edit config.json — at minimum set vault_path
+./install.sh          # symlinks the skill, copies config.example.json → config.json, runs the dependency doctor
+# then edit skills/paper-prism/assets/config.json — at minimum set vault_path
 ```
 
 `install.sh` symlinks `skills/paper-prism/` into `~/.claude/skills/` so Claude Code discovers it (the slash command becomes `/paper-prism`), then runs a dependency doctor that checks for the tools below.
@@ -195,7 +194,7 @@ The main agent acts as a coordinator: it fans work out to the three subagents (P
 
 ## Configuration
 
-Copy `config.example.json` → `config.json` (gitignored — it holds your private vault path) and edit. Config resolves in this order, first hit wins:
+`install.sh` creates `config.json` from `config.example.json` (gitignored — it holds your private vault path); edit it to taste (re-running `install.sh` never overwrites an existing one). Config resolves in this order, first hit wins:
 
 1. `$PRISM_CONFIG` — explicit path to a JSON file
 2. `skills/paper-prism/assets/config.json` — next to the module
@@ -303,7 +302,7 @@ In batch mode paper-prism runs a condensed five-question pass (Q1 + Q3 + Q4-brie
 
 ## Project status
 
-**v0.1.0** — works, and has been used on real papers. The note/deck/graph artifacts and the binding are stable; the skill's *internal* prompts, phase wiring, and config keys may still shift as it is hardened. Test suite is **153 checks, zero external dependencies** (`python3 tests/test_prism.py`). See [CHANGELOG.md](CHANGELOG.md).
+**v0.1.0** — works, and has been used on real papers. The note/deck/graph artifacts and the binding are stable; the skill's *internal* prompts, phase wiring, and config keys may still shift as it is hardened. Test suite is **184 checks, zero external dependencies** (`python3 tests/test_prism.py`). See [CHANGELOG.md](CHANGELOG.md).
 
 ---
 

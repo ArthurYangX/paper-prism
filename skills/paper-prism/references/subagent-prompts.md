@@ -110,7 +110,8 @@ You are running paper-prism's figure extraction as an isolated task.
 - PDF (fallback): {pdf_path}
 
 ## Single path — arXiv HTML (do not mix strategies)
-1. from prism_helpers import fetch_arxiv_html, parse_arxiv_figures, download_figures
+1. import sys; sys.path.insert(0, "skills/paper-prism/assets")  # resolve the import from repo root
+   from prism_helpers import fetch_arxiv_html, parse_arxiv_figures, download_figures
    html = fetch_arxiv_html("{arxiv_id}")
    figs = parse_arxiv_figures(html)          # [{id, src, caption}, ...]
    got  = download_figures("{arxiv_id}", figs, "{deck_dir}/assets", prefix="{method}_fig")
@@ -147,6 +148,7 @@ Tables are PDF screenshots, NEVER re-typed markdown. Full rationale: SKILL.md.
 1. pdftotext the PDF; grep "Table [0-9]" to count main + appendix tables.
 2. For pages that contain tables, render at 200 DPI WITH a paper-specific prefix
    (parallel papers must not collide on /tmp/page-NN.png):
+     import sys; sys.path.insert(0, "skills/paper-prism/assets")  # resolve the import from repo root
      from prism_helpers import render_pdf_pages, crop_region
      render_pdf_pages("{pdf_path}", "/tmp", X, Y, prefix="{method}_page")
 3. Read each page PNG, eyeball the table's pixel box (left, top, right, bottom),
@@ -176,6 +178,7 @@ marp {method}.slides.md --pdf  --allow-local-files -o {method}.slides.pdf
 marp {method}.slides.md --pptx --allow-local-files -o {method}.slides.pptx
 ```
 ```python
+import sys; sys.path.insert(0, "skills/paper-prism/assets")  # resolve imports from repo root
 from prism_config import load_config, slides_moc_path, project_moc_path
 from prism_helpers import (copy_paper_pdf, inject_resources_block,
                            append_to_slides_moc, update_project_moc, bootstrap_project)
@@ -253,10 +256,14 @@ stops when the queue empties.
 
 Each iteration:
 
-1. SCAN. Build the queue from the source:
-   - folder:   from prism_helpers import folder_to_queue; folder_to_queue("{dir}", "{PROJECT}")
-   - zotero:   from zotero import zotero_collection_to_queue; zotero_collection_to_queue("{name}", True, "{PROJECT}")
-   - yaml:     from prism_helpers import parse_paper_queue; parse_paper_queue("{queue.yaml}")
+1. SCAN. Build the queue from the source (each snippet assumes the assets dir on
+   sys.path — run from the repo root with
+   `PYTHONPATH=skills/paper-prism/assets python3 …`, or prepend
+   `import sys; sys.path.insert(0, "skills/paper-prism/assets")`):
+   - folder:     from prism_helpers import folder_to_queue; folder_to_queue("{dir}", "{PROJECT}")
+   - zotero:     from zotero import zotero_collection_to_queue; zotero_collection_to_queue("{name}", True, "{PROJECT}")
+   - zotero-tag: from zotero import zotero_query_to_queue; zotero_query_to_queue("{tag}", "{PROJECT}", by="tag")
+   - yaml:       from prism_helpers import parse_paper_queue; parse_paper_queue("{queue.yaml}")
    Resolve {method} per SKILL.md §1.1.
 
 2. DEDUP (resume). from prism_state import is_paper_done

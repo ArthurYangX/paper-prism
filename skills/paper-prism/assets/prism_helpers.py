@@ -30,10 +30,13 @@ from __future__ import annotations
 
 import json
 import os
+import random
 import re
 import shutil
 import subprocess
 import sys
+import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any
@@ -70,13 +73,56 @@ def _is_allowed_fig_url(url: str) -> bool:
     return host == "arxiv.org" or host.endswith(".arxiv.org")
 
 
+class _ArxivRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Follow a 30x redirect ONLY to an allowed arxiv.org host.
+
+    Entry URLs are already host-pinned (download_arxiv_pdf / fetch_arxiv_html build
+    https://arxiv.org/..., download_figures gates on _is_allowed_fig_url), but the
+    default opener would otherwise chase a `Location:` header to ANY http(s)/ftp host —
+    so a 302 from arxiv.org to http://169.254.169.254/ would be followed (SSRF).
+    Re-checking the redirect target closes that residual surface, while a normal
+    same-host hop (`/pdf/{id}` -> `/pdf/{id}.pdf`, http -> https) still goes through.
+    """
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if not _is_allowed_fig_url(newurl):
+            raise urllib.error.HTTPError(
+                newurl, code, "redirect to a disallowed host was blocked", headers, fp)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+_OPENER = None  # cached singleton (see _build_opener)
+
+
+def _build_opener() -> urllib.request.OpenerDirector:
+    """A cached opener that re-validates the host on every redirect (see
+    _ArxivRedirectHandler). Built once and reused: build_opener() probes the
+    system proxy config (tens of ms per call on macOS), so a fresh opener per
+    figure would add up — the handler is stateless and redirect state lives on
+    the Request, so one shared opener is correct.
+    """
+    global _OPENER
+    if _OPENER is None:
+        _OPENER = urllib.request.build_opener(_ArxivRedirectHandler)
+    return _OPENER
+
+
 def _http_get(url: str, timeout: int = 30, retries: int = 2) -> bytes:
-    """GET bytes with a small retry for transient arXiv hiccups."""
+    """GET bytes with a backed-off retry for transient arXiv hiccups.
+
+    Per-paper `arxiv:` mode can fire these in a burst, so an *immediate* retry
+    would hammer a 429/503. Sleep an exponential, lightly-jittered backoff before
+    each retry (nothing before the first attempt), capped so a batch never stalls
+    for long: ~0.5s, 1s, 2s, … + up to 0.25s jitter, ceiling 8s. Redirects are
+    followed only to arxiv.org (the opener re-checks every hop).
+    """
     req = urllib.request.Request(url, headers={"User-Agent": f"paper-prism/{__version__}"})
+    opener = _build_opener()
     last: Exception | None = None
-    for _ in range(retries + 1):
+    for attempt in range(retries + 1):
+        if attempt:
+            time.sleep(min(0.5 * 2 ** (attempt - 1), 8.0) + random.uniform(0, 0.25))
         try:
-            with urllib.request.urlopen(req, timeout=timeout) as r:
+            with opener.open(req, timeout=timeout) as r:
                 return r.read()
         except Exception as e:  # noqa: BLE001
             last = e
@@ -102,6 +148,7 @@ def render_pdf_pages(
         -> /tmp/Mamba_page-09.png ...
     Requires `pdftoppm` (poppler).
     """
+    prefix = safe_name(prefix) if prefix else "page"   # contain a caller-supplied prefix
     Path(out_dir).mkdir(parents=True, exist_ok=True)
     full_prefix = Path(out_dir) / prefix
     subprocess.run(
@@ -131,20 +178,43 @@ def page_size(src: str) -> tuple[int, int]:
 # ===========================================================================
 # 3. arXiv HTML figures  (recommended extraction path)
 # ===========================================================================
+def _normalize_arxiv_id(s: str) -> str:
+    """Reduce an id / `arxiv:<id>` / arxiv.org URL to a bare arXiv id.
+
+    The queue contract (queue-format.md) permits an id OR a URL for `arxiv:`, so
+    the downloader must accept either — `https://arxiv.org/abs/2312.00752`,
+    `arxiv:2312.00752`, and `2312.00752` all reduce to `2312.00752`. If no URL /
+    prefix is recognised the input is returned stripped, and `_valid_arxiv_id`
+    then decides whether it's usable.
+    """
+    s = str(s).strip()
+    m = re.search(r"arxiv\.org/(?:abs|pdf)/([^\s?#]+?)(?:\.pdf)?(?:[?#].*)?$", s, re.I)
+    if m:
+        return m.group(1)
+    m = re.match(r"arxiv:\s*(.+)$", s, re.I)
+    if m:
+        return m.group(1).strip()
+    return s
+
+
 def download_arxiv_pdf(arxiv_id: str, dest_dir: str, prefix: str = "") -> str | None:
     """Download an arXiv PDF deterministically. Returns the saved path, or None.
 
-    Fetches `https://arxiv.org/pdf/{id}` via the retrying `_http_get` (the id is
-    shape-validated; the host is fixed to arxiv.org over https). Verifies the bytes
-    start with the `%PDF-` magic before writing, so a captcha / HTML error page is
-    never saved as a `.pdf`. This is the deterministic downloader the `arxiv:` queue
-    mode and SKILL §1.2 promise, so the skill never has to improvise a `curl`.
+    Accepts a bare id, an `arxiv:<id>`, OR an arxiv.org URL (queue-format.md permits
+    all three) — normalized to an id first. Fetches `https://arxiv.org/pdf/{id}` via
+    the backed-off `_http_get` (the id is shape-validated; the host is fixed to
+    arxiv.org over https). Verifies the bytes start with the `%PDF-` magic before
+    writing, so a captcha / HTML error page is never saved as a `.pdf`. This is the
+    deterministic downloader the `arxiv:` queue mode and SKILL §1.2 promise, so the
+    skill never has to improvise a `curl`.
     """
+    arxiv_id = _normalize_arxiv_id(arxiv_id)
     if not _valid_arxiv_id(arxiv_id):
         return None
+    prefix = safe_name(prefix) if prefix else ""    # contain a caller-supplied prefix
     try:
         data = _http_get(f"https://arxiv.org/pdf/{arxiv_id}")
-    except Exception:  # noqa: BLE001
+    except (urllib.error.URLError, OSError, TimeoutError):
         return None
     if not data or data[:5] != b"%PDF-":
         return None
@@ -158,6 +228,7 @@ def fetch_arxiv_html(arxiv_id: str, cache_path: str | None = None) -> str:
     """Download an arXiv HTML5 fulltext page (arxiv.org/html/{id}). Returns HTML."""
     if cache_path and os.path.exists(cache_path):
         return Path(cache_path).read_text()
+    arxiv_id = _normalize_arxiv_id(arxiv_id)
     if not _valid_arxiv_id(arxiv_id):
         raise ValueError(f"refusing to fetch malformed arXiv id: {arxiv_id!r}")
     url = f"https://arxiv.org/html/{arxiv_id}"
@@ -186,12 +257,41 @@ def parse_arxiv_figures(html: str) -> list[dict]:
     return out
 
 
+def _arxiv_fig_url(src: str, arxiv_id: str) -> str:
+    """Absolute arXiv-HTML URL for a figure `src`, per the image-troubleshooting
+    iron rule (no version skew, no duplicated id segment).
+
+    - An absolute http(s) URL is used as-is.
+    - A relative path that ALREADY carries an arxiv-id segment
+      (`2312.00752v1/x1.png`, `cs/0501001/x1.png`) is joined to the BARE `…/html/`
+      base — trust the HTML's own version, and do NOT prepend the (possibly
+      version-skewed) queue id, which is exactly what duplicates the segment.
+    - A bare `x1.png` is prefixed with the queue id.
+    Any accidental `…/<seg>/<seg>/…` duplication is then collapsed.
+    """
+    HTML_BASE = "https://arxiv.org/html/"
+    if src.startswith(("http://", "https://")):
+        url = src
+    else:
+        rel = src.lstrip("/")
+        has_id_seg = bool(re.match(r"\d{4}\.\d{4,5}(?:v\d+)?/", rel)
+                          or re.match(r"[a-z][a-z\-]*(?:\.[A-Z]{2})?/\d{7}/", rel))
+        if has_id_seg:
+            url = HTML_BASE + rel
+        elif _valid_arxiv_id(arxiv_id):
+            url = HTML_BASE + arxiv_id + "/" + rel
+        else:
+            url = ""
+    return re.sub(r"/([^/]+)/\1/", r"/\1/", url)
+
+
 def download_figures(
     arxiv_id: str,
     figures: list[dict],
     out_dir: str,
     prefix: str = "fig",
     min_bytes: int = 10 * 1024,
+    max_consec_fail: int = 4,
 ) -> list[dict]:
     """Download exactly the figures in `figures` (from parse_arxiv_figures).
 
@@ -199,10 +299,18 @@ def download_figures(
     anything smaller than `min_bytes` (icons/blanks). Caller should still Read
     each image to verify content matches caption (arXiv x-numbers do NOT map
     1:1 to printed Figure numbers).
+
+    CIRCUIT BREAKER: after `max_consec_fail` consecutive *network* failures (arXiv
+    down / 429-ing), the remaining figures are recorded as failed WITHOUT another
+    backed-off fetch — so one paper with many figures against a dead arXiv can't
+    serialize ~2s of retry-sleep per figure into a 30-40s stall. A single success
+    (or a reachable-but-too-small image) clears the streak.
     """
     Path(out_dir).mkdir(parents=True, exist_ok=True)
-    base = f"https://arxiv.org/html/{arxiv_id}/" if _valid_arxiv_id(arxiv_id) else ""
+    prefix = safe_name(prefix) if prefix else "fig"    # contain a caller-supplied prefix
+    norm_id = _normalize_arxiv_id(arxiv_id)
     annotated = []
+    consec_fail = 0
     for i, fig in enumerate(figures, 1):
         src = fig["src"]
         rec = dict(fig)
@@ -212,15 +320,17 @@ def download_figures(
             rec.update(file=None, ok=False, reason="blocked_url")
             annotated.append(rec)
             continue
-        # de-dup accidental repeated id segments e.g. 2312.00752v1/2312.00752v1/
-        url = src if src.startswith("http") else (base + src.lstrip("/") if base else "")
-        url = re.sub(r"/([^/]+)/\1/", r"/\1/", url)
+        url = _arxiv_fig_url(src, norm_id)
         ext = os.path.splitext(src)[1] or ".png"
         dst = Path(out_dir) / f"{prefix}_{i:02d}{ext}"
         # SECURITY: only fetch https on arxiv.org — a hostile absolute `src`
         # (//evil, http://169.254.169.254) must never be fetched.
         if not _is_allowed_fig_url(url):
             rec.update(file=None, ok=False, reason="blocked_url")
+            annotated.append(rec)
+            continue
+        if consec_fail >= max_consec_fail:    # arXiv looks down — stop hammering it
+            rec.update(file=None, ok=False, reason="skipped_after_consecutive_failures")
             annotated.append(rec)
             continue
         try:
@@ -230,8 +340,10 @@ def download_figures(
                 rec.update(file=str(dst), ok=True)
             else:
                 rec.update(file=None, ok=False, reason="too_small")
+            consec_fail = 0                   # network is reachable → clear the streak
         except Exception as e:  # noqa: BLE001
             rec.update(file=None, ok=False, reason=str(e)[:80])
+            consec_fail += 1                  # only a network failure trips the breaker
         annotated.append(rec)
     return annotated
 

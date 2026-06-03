@@ -10,7 +10,7 @@ deterministic, stdlib-first, well-tested — are the most welcome.
 python3 tests/test_prism.py
 ```
 
-The suite is **153 checks with zero external dependencies** and it must stay
+The suite is **184 checks with zero external dependencies** and it must stay
 green and dependency-free. It gates everything: config/label resolution, the
 three-piece binding (idempotency + user-content protection), both MOC writers,
 and the queue parsers. If your change touches `skills/paper-prism/assets/*.py`, add or

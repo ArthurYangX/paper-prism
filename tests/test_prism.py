@@ -550,6 +550,8 @@ def test_zotero(tmp):
     storage = Path(tmp) / "storage"
     (storage / "ATTACHKEY").mkdir(parents=True)
     (storage / "ATTACHKEY" / "mamba.pdf").write_bytes(b"%PDF-1.4")
+    (storage / "EVILATTACH").mkdir(parents=True)            # M6: the evil attachment's key dir DOES exist...
+    (Path(tmp) / "escaped.pdf").write_bytes(b"%PDF-evil")    # ...and its '../../' target exists OUTSIDE storage/
     con = sqlite3.connect(db)
     con.executescript(
         """
@@ -560,6 +562,8 @@ def test_zotero(tmp):
         CREATE TABLE itemDataValues(valueID INT, value TEXT);
         CREATE TABLE fields(fieldID INT, fieldName TEXT);
         CREATE TABLE itemAttachments(itemID INT, parentItemID INT, contentType TEXT, path TEXT);
+        CREATE TABLE tags(tagID INT, name TEXT);
+        CREATE TABLE itemTags(itemID INT, tagID INT);
         INSERT INTO collections VALUES (1,'CIL',NULL),(2,'Sub',1);
         INSERT INTO fields VALUES (1,'title'),(2,'date');
         INSERT INTO items VALUES (10,'PAPERKEY',2),(11,'ATTACHKEY',14);
@@ -567,13 +571,27 @@ def test_zotero(tmp):
         INSERT INTO itemDataValues VALUES (100,'Mamba: Linear-Time'),(101,'2023-12-01');
         INSERT INTO collectionItems VALUES (1,10);
         INSERT INTO itemAttachments VALUES (11,10,'application/pdf','storage:mamba.pdf');
-        -- extra items: F2 (no-PDF item with arXiv in url) and R7 (dup title, no PDF)
+        INSERT INTO tags VALUES (1,'SSM');
+        INSERT INTO itemTags VALUES (10,1);          -- tag 'SSM' on the Mamba paper (Mode 5)
+        -- extra items: F2 (no-PDF item with arXiv in url), R7 (dup title, no PDF),
+        -- and R9 (dup title, no PDF, itemID 9 < the PDF copy 10 — an unguarded
+        -- "first match wins" would return THIS; the PDF-preference loop must skip it).
         INSERT INTO collections VALUES (3,'Extra',NULL);
         INSERT INTO fields VALUES (3,'url');
-        INSERT INTO items VALUES (12,'NOPDFKEY',2),(13,'DUPNOPDF',2);
-        INSERT INTO itemData VALUES (12,1,102),(12,3,200),(13,1,103);
+        INSERT INTO items VALUES (9,'DUPLOW',2),(12,'NOPDFKEY',2),(13,'DUPNOPDF',2);
+        INSERT INTO itemData VALUES (9,1,103),(12,1,102),(12,3,200),(13,1,103);
         INSERT INTO itemDataValues VALUES (102,'NoPDF Paper'),(200,'https://arxiv.org/abs/2401.00001'),(103,'Mamba: Linear-Time');
         INSERT INTO collectionItems VALUES (3,12),(3,13);
+        -- arXiv id from metadata: an OLD-style id behind an arxiv.org prefix, and a bogus
+        -- 'word/7digits' DOI that must NOT be mistaken for an arXiv id (anchoring check).
+        INSERT INTO items VALUES (22,'OLDSTYLE',2),(23,'BOGUSDOI',2);
+        INSERT INTO itemData VALUES (22,1,104),(22,3,201),(23,1,105),(23,3,202);
+        INSERT INTO itemDataValues VALUES (104,'Old Style Paper'),(201,'https://arxiv.org/abs/cs/0501001'),(105,'Bogus DOI Paper'),(202,'10.1000/1234567');
+        INSERT INTO collectionItems VALUES (3,22),(3,23);
+        -- M6: an attachment whose stored path climbs OUT of storage/ to a target that EXISTS
+        -- on disk (so containment, not a missing file, must be what returns None).
+        INSERT INTO items VALUES (20,'EVILPARENT',2),(21,'EVILATTACH',14);
+        INSERT INTO itemAttachments VALUES (21,20,'application/pdf','storage:../../escaped.pdf');
         """
     )
     con.commit(); con.close()
@@ -598,7 +616,9 @@ def test_zotero(tmp):
         check("zotero find_item_key in-collection", zt.find_item_key("Mamba: Linear-Time", collection_id=1) == "PAPERKEY")
         check("zotero find_item_key miss → None", zt.find_item_key("Some Other Paper") is None)
         check("zotero find_item_key wrong-collection → None", zt.find_item_key("Mamba: Linear-Time", collection_id=2) is None)
-        # R7: two copies match the title (10 has a PDF, 13 doesn't) → prefer the PDF copy
+        # R7/R9: three copies match the title (10 has a PDF; 9 & 13 don't, and 9 sorts
+        # FIRST by itemID) → the PDF-preference loop must still return the PDF copy.
+        # (Deleting that loop would now return DUPLOW and fail this check.)
         check("zotero find_item_key prefers the PDF copy", zt.find_item_key("Mamba: Linear-Time") == "PAPERKEY")
         # F2: a collection item without a PDF emits an arxiv source (from metadata), never path:None
         q3 = zt.zotero_collection_to_queue(3, recursive=False)
@@ -606,6 +626,42 @@ def test_zotero(tmp):
         check("zotero no-PDF → arxiv source", s12.get("arxiv") == "2401.00001" and "path" not in s12)
         s13 = next(s for s in q3 if s["zotero_item"] == 13)
         check("zotero no-PDF no-arxiv → zotero_item kept, no None path", "path" not in s13 and s13["zotero_item"] == 13)
+        # arXiv-from-metadata: an OLD-style id is captured; a bogus 'word/7digits' DOI is NOT
+        s22 = next(s for s in q3 if s["zotero_item"] == 22)
+        check("zotero arxiv old-style id from url", s22.get("arxiv") == "cs/0501001")
+        s23 = next(s for s in q3 if s["zotero_item"] == 23)
+        check("zotero arxiv anchoring: bogus DOI yields no arxiv", "arxiv" not in s23)
+        # M6: an attachment path escaping storage/ is refused EVEN THOUGH its target exists on
+        # disk — so CONTAINMENT, not a missing file, is the reason for None. Reverting the
+        # containment guard makes pdf_path return the escaping path, and this check then FAILS.
+        check("M6 pdf_path refuses path escaping storage", zt.pdf_path(20) is None)
+        # M5 (Mode 5): tag query → queue, with auto/title fallbacks
+        qt = zt.zotero_query_to_queue("SSM", project="Z", by="tag")
+        check("M5 query by tag → the tagged PDF item",
+              len(qt) == 1 and qt[0]["zotero_item"] == 10 and qt[0]["path"].endswith("mamba.pdf"))
+        check("M5 query unknown tag → empty (by=tag)", zt.zotero_query_to_queue("NoSuchTag", by="tag") == [])
+        qa = zt.zotero_query_to_queue("NoPDF", by="auto")   # no such tag → title search 'NoPDF Paper'
+        check("M5 query auto falls back to title", any(s["zotero_item"] == 12 for s in qa))
+        qk = zt.zotero_query_to_queue("Mamba", by="title")
+        check("M5 query by title keyword", any(s["zotero_item"] == 10 for s in qk))
+        # leak guard: a failure between mkstemp and return in _open_db must NOT strand a temp
+        # copy of the (private) Zotero DB. Force sqlite3.connect to fail; assert nothing leaks.
+        import glob as _glob, tempfile as _tf
+        _real_connect = sqlite3.connect
+        before = set(_glob.glob(os.path.join(_tf.gettempdir(), "prism_zotero_*.sqlite")))
+        def _boom_connect(*a, **k):
+            raise RuntimeError("connect boom")
+        sqlite3.connect = _boom_connect
+        try:
+            try:
+                zt._open_db()
+                check("leak guard: _open_db surfaces the failure", False, "no error raised")
+            except RuntimeError:
+                check("leak guard: _open_db surfaces the failure", True)
+        finally:
+            sqlite3.connect = _real_connect
+        after = set(_glob.glob(os.path.join(_tf.gettempdir(), "prism_zotero_*.sqlite")))
+        check("leak guard: no temp DB stranded on connect failure", after <= before)
     finally:
         del os.environ["PRISM_CONFIG"]
 
@@ -627,9 +683,28 @@ def test_marp_missing(tmp):
 def test_arxiv_download(tmp):
     print("arxiv pdf download")
     check("download_arxiv_pdf rejects bad id", ph.download_arxiv_pdf("not an id!", tmp) is None)
+
+    # _normalize_arxiv_id: bare id / arxiv: prefix / arxiv.org URL all reduce to a bare id
+    check("normalize abs url", ph._normalize_arxiv_id("https://arxiv.org/abs/2312.00752") == "2312.00752")
+    check("normalize pdf url .pdf", ph._normalize_arxiv_id("https://arxiv.org/pdf/2312.00752v2.pdf") == "2312.00752v2")
+    check("normalize arxiv: prefix", ph._normalize_arxiv_id("arxiv: 2312.00752") == "2312.00752")
+    check("normalize bare id untouched", ph._normalize_arxiv_id("2312.00752") == "2312.00752")
+
+    # #4 _arxiv_fig_url: no version skew, no duplicated id segment
+    check("#4 fig url bare name gets queue id",
+          ph._arxiv_fig_url("x3.png", "2312.00752") == "https://arxiv.org/html/2312.00752/x3.png")
+    check("#4 fig url rel keeps its own version (no dup)",
+          ph._arxiv_fig_url("2312.00752v1/x1.png", "2312.00752") == "https://arxiv.org/html/2312.00752v1/x1.png")
+    check("#4 fig url absolute used as-is",
+          ph._arxiv_fig_url("https://arxiv.org/html/2312.00752/x1.png", "2312.00752")
+          == "https://arxiv.org/html/2312.00752/x1.png")
+    check("#4 fig url collapses duplicated segment",
+          ph._arxiv_fig_url("2312.00752/2312.00752/x1.png", "2312.00752")
+          == "https://arxiv.org/html/2312.00752/x1.png")
+
     real = ph._http_get
-    ph._http_get = lambda url, **kw: b"%PDF-1.4 fake body"
     try:
+        ph._http_get = lambda url, **kw: b"%PDF-1.4 fake body"
         out = ph.download_arxiv_pdf("1706.03762", tmp, prefix="Transformer")
         check("download_arxiv_pdf saves a verified PDF",
               out is not None and out.endswith("Transformer.pdf")
@@ -637,8 +712,100 @@ def test_arxiv_download(tmp):
         ph._http_get = lambda url, **kw: b"<html>captcha</html>"
         check("download_arxiv_pdf rejects a non-PDF body",
               ph.download_arxiv_pdf("1706.03762", tmp) is None)
+
+        # #2: accepts an arXiv URL or `arxiv:` prefix, not just a bare id
+        ph._http_get = lambda url, **kw: b"%PDF-1.4 body"
+        for ref in ("https://arxiv.org/abs/2312.00752", "arxiv:2312.00752",
+                    "https://arxiv.org/pdf/2312.00752v2.pdf"):
+            out = ph.download_arxiv_pdf(ref, tmp)
+            check(f"#2 download accepts {ref.rsplit('/', 1)[-1][:18]}",
+                  out is not None and Path(out).read_bytes().startswith(b"%PDF-"))
+
+        # #5: a traversal-laden prefix can't escape dest (download_arxiv_pdf + download_figures)
+        out = ph.download_arxiv_pdf("1706.03762", tmp, prefix="../../evil")
+        check("#5 download_arxiv_pdf prefix contained",
+              out is not None and ".." not in os.path.relpath(out, tmp))
+        ph._http_get = lambda url, **kw: b"\x89PNG\r\n" + b"0" * (11 * 1024)
+        gf = ph.download_figures("2312.00752", [{"src": "x1.png", "caption": ""}],
+                                 str(Path(tmp) / "df"), prefix="../evil")
+        check("#5 download_figures prefix contained",
+              gf[0]["ok"] and ".." not in gf[0]["file"] and Path(gf[0]["file"]).name.startswith("evil_"))
+
+        # #10: a narrowed network error returns None (not a crash)
+        import urllib.error as ue
+        def _boom(url, **kw):
+            raise ue.URLError("down")
+        ph._http_get = _boom
+        check("#10 download_arxiv_pdf network error → None",
+              ph.download_arxiv_pdf("1706.03762", tmp) is None)
+        # #10b: a NON-network exception must PROPAGATE (the actual point of narrowing the
+        # except — re-broadening it to `except Exception` would make this assertion fail)
+        def _bug(url, **kw):
+            raise RuntimeError("programming bug")
+        ph._http_get = _bug
+        try:
+            ph.download_arxiv_pdf("1706.03762", tmp)
+            check("#10b non-network exception propagates", False, "swallowed")
+        except RuntimeError:
+            check("#10b non-network exception propagates", True)
+        # circuit breaker: after N consecutive NETWORK failures the rest are skipped
+        # without another backed-off fetch (no per-figure stall on a dead arXiv)
+        fetched = {"n": 0}
+        def _always_fail(url, **kw):
+            fetched["n"] += 1
+            raise ue.URLError("arxiv down")
+        ph._http_get = _always_fail
+        many = [{"src": f"x{k}.png", "caption": ""} for k in range(10)]
+        cb = ph.download_figures("2312.00752", many, str(Path(tmp) / "cb"), max_consec_fail=3)
+        check("circuit breaker fetches only N then stops", fetched["n"] == 3)
+        check("circuit breaker skips the rest",
+              sum(1 for r in cb if r.get("reason") == "skipped_after_consecutive_failures") == 7)
     finally:
         ph._http_get = real
+
+
+def test_http_backoff():
+    print("http backoff (#11) + redirect host-check")
+    import urllib.error as ue
+    import urllib.request as ur
+    sleeps: list[float] = []
+    calls = {"n": 0}
+
+    class _Resp:
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+        def read(self): return b"ok"
+
+    class _FakeOpener:
+        def open(self, req, timeout=0):
+            calls["n"] += 1
+            if calls["n"] < 3:          # fail the first two attempts
+                raise ue.URLError("transient")
+            return _Resp()
+
+    real_sleep, real_opener = ph.time.sleep, ph._build_opener
+    ph.time.sleep = lambda s: sleeps.append(s)
+    ph._build_opener = lambda: _FakeOpener()
+    try:
+        data = ph._http_get("https://arxiv.org/x", retries=3)
+        check("#11 retries then succeeds", data == b"ok")
+        check("#11 slept between retries (no immediate storm)", len(sleeps) == 2)
+        check("#11 backoff is increasing", len(sleeps) == 2 and sleeps[1] > sleeps[0])
+    finally:
+        ph.time.sleep = real_sleep
+        ph._build_opener = real_opener
+
+    # redirect host-check: an off-host Location is refused; a same-host arxiv.org hop is allowed
+    h = ph._ArxivRedirectHandler()
+    try:
+        h.redirect_request(ur.Request("https://arxiv.org/pdf/x"), None, 302, "Found", {},
+                           "http://169.254.169.254/meta")
+        check("redirect off-host blocked", False, "not blocked")
+    except ue.HTTPError:
+        check("redirect off-host blocked", True)
+    same = h.redirect_request(ur.Request("https://arxiv.org/pdf/x"), None, 302, "Found", {},
+                              "https://arxiv.org/pdf/x.pdf")
+    check("redirect same-host (arxiv) allowed", same is not None)
 
 
 def test_concepts(tmp):
@@ -674,6 +841,7 @@ def main():
         test_zotero(tmp)
         test_marp_missing(tmp)
         test_arxiv_download(tmp)
+        test_http_backoff()
         test_concepts(tmp)
 
     print()

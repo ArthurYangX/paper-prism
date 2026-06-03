@@ -75,8 +75,8 @@ SOP — the table agent does this; do **NOT** hand-write a markdown table:
 # 1. render the page(s) holding the table at 200 DPI
 python3 skills/paper-prism/assets/prism_helpers.py render paper.pdf /tmp {first} {last} {method}_page
 # 2. Read the page PNG, find the table's pixel box, crop it (header rows + caption included):
-python3 -c "from prism_helpers import crop_region; crop_region('/tmp/{method}_page-NN.png', \
-  'assets/{method}_table_K.png', (left, top, right, bottom))"
+PYTHONPATH=skills/paper-prism/assets python3 -c "from prism_helpers import crop_region; \
+  crop_region('/tmp/{method}_page-NN.png', 'assets/{method}_table_K.png', (left, top, right, bottom))"
 # 3. Read the crop back: caption + header + ALL data rows present, no truncation. Re-crop if off.
 ```
 

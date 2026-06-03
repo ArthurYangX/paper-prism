@@ -28,7 +28,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the top; the why/how/rationale moved below a divider.
 
 ### Fixed
-Two review passes (codex + an integral review) — every material finding addressed:
+Three review passes (codex, an integral review, then a perf/robustness review) — every material finding addressed:
 - **Concurrency / resume integrity**: `update_paper` now takes a cross-process `flock`,
   so parallel coordinators no longer last-writer-wins-drop each other's state entries;
   `is_paper_done` / `resume_plan` require the PDF `%%EOF` trailer, so a crash-truncated
@@ -45,7 +45,32 @@ Two review passes (codex + an integral review) — every material finding addres
   "installed but NOT ready" on a missing required dep; `copy_paper_pdf` compares the head,
   not just size; `/tmp`→`.cache` doc fixes for the durable Phase-2 artifacts;
   `zotero_helper.py`→`zotero.py` and other doc/code-name alignments.
-- Tests: 132 → **153** (zero external dependencies).
+- **Third review pass (perf + robustness)**: `zotero_collection_to_queue` /
+  `zotero_query_to_queue` open ONE temp-copy DB connection threaded through every
+  per-item helper — O(2N) full-DB copies → **O(1)**; `download_arxiv_pdf` /
+  `fetch_arxiv_html` accept an arXiv URL or `arxiv:` prefix (not just a bare id);
+  arXiv figure URLs are built with no version skew / duplicated id segment
+  (`_arxiv_fig_url`); the subagent-prompt snippets carry `sys.path`/`PYTHONPATH` so
+  they run from the repo root; caller-supplied `prefix`es are `safe_name`-contained
+  (render / figures / pdf); a Zotero attachment path that escapes `storage/<key>/`
+  is refused; **Mode 5 (Zotero tag/query) is now implemented** (`zotero_query_to_queue`,
+  tag → title fallback) rather than merely advertised; the README no longer re-`cp`s
+  `config.json` after `install.sh` already created it; `_http_get` retries with
+  exponential backoff + jitter; `download_arxiv_pdf` narrows its exception to network
+  errors; and the no-`fcntl` (Windows) path warns once instead of silently dropping
+  the cross-process lock.
+- **Pre-push review pass (adversarial swarm)** — a 6-dimension review with per-finding
+  verification caught that the Zotero attachment-path containment had not actually landed
+  (and its test was a no-op that passed either way): `pdf_path` now genuinely refuses a
+  `storage:` path that resolves outside the storage root (mutation-verified); `_open_db`
+  no longer strands a private temp DB copy if copyfile/chmod/connect fails after `mkstemp`;
+  `_http_get` follows redirects ONLY back to arxiv.org (closes a residual off-host SSRF);
+  and three test gaps closed — the narrowed `except` now asserts non-network errors
+  propagate, old-style/anchored arXiv-id extraction is covered, and the public docs that
+  still read "153 checks" are synced. `download_figures` also gains a consecutive-failure
+  circuit breaker, so a dead/429-ing arXiv can't stall a many-figure paper with
+  per-figure retry-sleep.
+- Tests: 132 → **184** (zero external dependencies).
 
 ## [0.1.0] - 2026-06-03
 

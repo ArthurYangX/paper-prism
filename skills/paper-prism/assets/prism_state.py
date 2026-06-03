@@ -37,6 +37,8 @@ try:
 except ImportError:  # pragma: no cover — Windows has no fcntl
     _HAVE_FLOCK = False
 
+_WARNED_NO_FLOCK = False
+
 PHASES = ("analysis", "figures", "tables", "synth", "render", "bind")
 _DONE_MIN_PDF_BYTES = 50 * 1024  # a real deck is comfortably bigger than this
 
@@ -53,6 +55,12 @@ def _state_lock(state_file: Path):
     a best-effort no-op rather than crashing.
     """
     if not _HAVE_FLOCK:
+        global _WARNED_NO_FLOCK
+        if not _WARNED_NO_FLOCK:   # warn ONCE, don't silently drop the guarantee
+            _WARNED_NO_FLOCK = True
+            print("paper-prism: no fcntl on this platform — per-project state updates are "
+                  "NOT cross-process locked; run batches with parallel:1 to avoid a "
+                  "lost-update race.", file=sys.stderr)
         yield
         return
     state_file.parent.mkdir(parents=True, exist_ok=True)
@@ -184,7 +192,9 @@ def _is_complete_pdf(p: Path) -> bool:
         return False
     try:
         with open(p, "rb") as f:
-            f.seek(-min(1024, p.stat().st_size), os.SEEK_END)
+            # scan the last 4 KB, not just 1 KB, so a valid trailer followed by a
+            # little whitespace/newline padding still reads as complete.
+            f.seek(-min(4096, p.stat().st_size), os.SEEK_END)
             return b"%%EOF" in f.read()
     except OSError:
         return False
