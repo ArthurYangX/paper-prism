@@ -26,14 +26,20 @@ top of, or substantially reworks from, that base.
   (Sonnet) run concurrently; ~8 min/paper and ~3× cheaper than all-Opus.
 - **Method-name extraction** by confidence tier (Zotero title → "we propose X" →
   repeated acronym → ask the user), so batches name notes correctly.
-- **Six input modes** — single paper, folder, Zotero collection, YAML queue,
-  Zotero query, and **reference/.bib import** — all driving the same pipeline; a
-  git-versionable YAML queue spec (`assets/queue-format.md`) as the recommended
-  batch entry.
+- **Seven input modes** — single paper, folder, Zotero collection, YAML queue,
+  Zotero query, **reference/.bib import**, and **discovery-source ingestion** —
+  all driving the same pipeline; a git-versionable YAML queue spec
+  (`assets/queue-format.md`) as the recommended batch entry.
 - **Reference & `.bib` import** (`assets/prism_refs.py`) — turn a paper's whole
   bibliography (a LaTeX `.bib`, or a PDF's References section) into a queue:
   zero-dependency BibTeX parser, robust arXiv-id/DOI extraction (new + old id
   styles), and a prose-vs-author-list title heuristic for PDF references.
+- **Discovery sources (Mode 7)** — prism ingests the output of *separate* upstream
+  discovery skills (a daily digest, a topic search, Semantic Scholar, arXiv) via a
+  lenient JSON contract `{title, arxiv?, doi?, score?, why?}`; `load_discovery` +
+  `discovery_to_queue` sort by score, take the top-K, and map score→priority /
+  why→relevance. prism stays the deep-processing backend and does not scrape or
+  score itself.
 - **Checkpoint & resume (断点重连)** via a `/loop` master prompt and
   `prism_state.py`: a per-project state file (atomic writes) + a per-paper durable
   cache let a re-run skip finished papers *and* resume a half-finished one from its
@@ -49,7 +55,7 @@ top of, or substantially reworks from, that base.
 - **Stdlib-first helper library** (`prism_helpers.py`, `prism_config.py`) for
   PDF rendering, PIL cropping, arXiv figure download, Marp rendering, the binding
   writers, and the queue parsers — optional deps lazily imported.
-- **Test suite** — 76 checks, zero external dependencies
+- **Test suite** — 90 checks, zero external dependencies
   (`python3 tests/test_prism.py`), covering config/labels, the three binders,
   both MOC writers, the queue parsers, and the checkpoint/resume logic.
 

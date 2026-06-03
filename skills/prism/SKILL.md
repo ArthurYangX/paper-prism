@@ -71,6 +71,10 @@ differs.
 | **4 · YAML queue file** | `batch from papers.yaml` | `parse_paper_queue()` | reproducible |
 | **5 · Zotero query** | `process Zotero papers tagged X` | SQL → queue | filtered |
 | **6 · References / .bib** | `process this paper's references` / `batch from refs.bib` | `prism_refs.parse_bib()` / `parse_references_from_text()` | a citation neighbourhood |
+| **7 · Discovery source** | `today's papers → deck the top 5` / `find papers on X → process them` / `batch from digest.json` | `prism_refs.load_discovery()` → `discovery_to_queue()` | a recommender feed |
+
+Modes 1–6 are "you point at papers you have". **Mode 7 is "a discovery source
+brings papers to you"** — see below.
 
 **Mode 4 (YAML) is the recommended batch entry** — git-versionable, resumable,
 per-paper overrides. Spec: `assets/queue-format.md`.
@@ -85,6 +89,31 @@ queue (`assets/prism_refs.py`):
 - `refs_to_queue(entries, project)` maps arXiv-bearing refs to `arxiv:` items and
   the rest to `zotero:` (title search), producing a runnable queue. CLI:
   `python3 assets/prism_refs.py bib refs.bib` or `... pdf paper.pdf`.
+
+**Mode 7 (discovery sources) — separate by design.** prism does NOT scrape or
+score papers; discovery stays in dedicated upstream skills. prism only *ingests*
+their output and refracts the keepers. The handoff contract is a JSON list:
+
+```json
+[ {"title": "...", "arxiv": "2312.00752", "score": 9.5, "why": "selective SSM"}, ... ]
+```
+
+Field names are matched leniently (`arxiv_id`/`id`/`url`, `tldr`/`reason`/`score`/`rating`).
+`load_discovery(path)` normalizes it; `discovery_to_queue(items, project, top_k=, min_score=)`
+sorts by score, takes the top, maps score→priority and why→relevance, and emits a
+runnable queue. CLI: `python3 assets/prism_refs.py discovery digest.json --top 5`.
+
+Selectable discovery front-ends (each is an independent skill / tool — pick one):
+- **today's papers** → a daily-digest skill (e.g. `daily-papers` `fetch_and_score.py`
+  → `daily_papers_top30.json`) → `discovery digest.json` → process the picks.
+- **topic search** → a lit-search skill (e.g. `research-lit "topic" — sources: ...`,
+  `semantic-scholar`, `arxiv`) → export its hits as the JSON above (or a `.bib`) →
+  feed prism.
+- **your own recommender** → emit the JSON contract; prism doesn't care how you got it.
+
+If a discovery skill is present, the main agent may invoke it and pipe its output;
+if not, the user runs discovery themselves and hands prism the JSON/`.bib`. Either
+way prism stays the deep-processing backend.
 
 Single-paper reference forms (Mode 1): local `*.pdf`, `arxiv:2312.00752`, an
 arXiv URL, `Zotero: Mamba` (title search), or a Zotero item id.
@@ -445,7 +474,7 @@ Inspect anytime: `python3 skills/prism/assets/prism_state.py status {project}`.
 - `assets/queue-format.md` — YAML queue spec for Mode 4
 - `assets/prism_helpers.py` — render / crop / figures / marp / binding / queue functions
 - `assets/prism_state.py` — checkpoint / resume: state file, durable cache, resume_plan
-- `assets/prism_refs.py` — reference / .bib import (Mode 6): parse_bib, PDF refs → queue
+- `assets/prism_refs.py` — reference/.bib import (Mode 6) + discovery-source ingestion (Mode 7): parse_bib, PDF refs, load_discovery → queue
 - `assets/zotero.py` — read-only Zotero integration + collection→queue
 - `assets/prism_config.py` — config + i18n labels
 ```

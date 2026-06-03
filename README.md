@@ -5,7 +5,7 @@
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 ![Claude Code skill](https://img.shields.io/badge/Claude%20Code-skill-8A2BE2)
 ![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)
-![tests 76 passing](https://img.shields.io/badge/tests-76%20passing-brightgreen)
+![tests 90 passing](https://img.shields.io/badge/tests-90%20passing-brightgreen)
 
 **English** · [简体中文](README.zh-CN.md)
 
@@ -24,8 +24,8 @@ A single paper in roughly 8 minutes, or your whole Zotero collection overnight �
 **At a glance:**
 
 ```text
-  INPUT · 6 modes
-  PDF · arXiv · Zotero collection · folder · YAML queue · .bib / references
+  INPUT · 7 modes
+  PDF · arXiv · Zotero · folder · YAML queue · .bib/references · discovery feed
                           │
                           ▼   build & dedup queue
   ┌────────────────── PIPELINE · 5 phases  (parallel by default) ──────────────────┐
@@ -134,7 +134,7 @@ papers:
 
 Each paper needs exactly one of `path` / `arxiv` / `zotero`. Full spec: `skills/prism/assets/queue-format.md`.
 
-### Six input modes — same pipeline, different queue source
+### Seven input modes — same pipeline, different queue source
 
 | Mode | What you say | Source |
 |------|--------------|--------|
@@ -144,13 +144,18 @@ Each paper needs exactly one of `path` / `arxiv` / `zotero`. Full spec: `skills/
 | 4 · YAML queue | `batch from papers.yaml` | a git-versionable queue file (recommended) |
 | 5 · Zotero query | `process Zotero papers tagged X` | a Zotero tag/query |
 | 6 · References / `.bib` | `process this paper's references` · `batch from refs.bib` | a paper's bibliography or a LaTeX `.bib` |
+| 7 · Discovery source | `today's papers → deck the top 5` · `batch from digest.json` | a recommender feed (daily digest, topic search, …) |
 
-Mode 6 turns a whole citation list into a queue — a zero-dependency BibTeX parser
-plus arXiv-id/DOI extraction (`skills/prism/assets/prism_refs.py`):
+Modes 1–6 are *you point at papers you have*; **Mode 7 is *a discovery source
+brings papers to you***. prism doesn't scrape or score — that stays in separate
+upstream skills (a daily-digest, a lit-search, Semantic Scholar, arXiv). They just
+emit a JSON list of `{title, arxiv?, score?, why?}` (or a `.bib`); prism ingests it
+and refracts the keepers, so prism stays a focused deep-processing backend.
 
 ```bash
-python3 skills/prism/assets/prism_refs.py bib refs.bib      # .bib  → queue
-python3 skills/prism/assets/prism_refs.py pdf paper.pdf      # PDF refs → queue
+python3 skills/prism/assets/prism_refs.py bib  refs.bib            # .bib       → queue
+python3 skills/prism/assets/prism_refs.py pdf  paper.pdf           # PDF refs   → queue
+python3 skills/prism/assets/prism_refs.py discovery digest.json --top 5   # a feed → queue
 ```
 
 ---
@@ -255,7 +260,7 @@ In Obsidian, the deck PDF and the source PDF embed inline at the top of the note
 
 ## Project status
 
-**v0.1.0** — works, and has been used on real papers. The note/deck/graph artifacts and the binding are stable; the skill's *internal* prompts, phase wiring, and config keys may still shift as it is hardened. Test suite is **76 checks, zero external dependencies** (`python3 tests/test_prism.py`). See [CHANGELOG.md](CHANGELOG.md).
+**v0.1.0** — works, and has been used on real papers. The note/deck/graph artifacts and the binding are stable; the skill's *internal* prompts, phase wiring, and config keys may still shift as it is hardened. Test suite is **90 checks, zero external dependencies** (`python3 tests/test_prism.py`). See [CHANGELOG.md](CHANGELOG.md).
 
 ---
 

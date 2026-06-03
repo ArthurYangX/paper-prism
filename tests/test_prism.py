@@ -368,6 +368,54 @@ def test_refs(tmp):
 
 
 # ---------------------------------------------------------------------------
+def test_discovery(tmp):
+    print("discovery source → queue")
+    import prism_refs as pr
+    # heterogeneous recommender records: varied field names, arxiv in id/url
+    raw = {
+        "papers": [
+            {"arxiv_id": "2312.00752", "title": "Mamba", "score": 9.5, "tldr": "selective SSM"},
+            {"id": "2106.09685", "name": "LoRA", "rating": 7.0, "reason": "PEFT staple"},
+            {"url": "https://arxiv.org/abs/1706.03762", "title": "Transformer", "score": 6.0},
+            {"title": "Some venue-only paper", "doi": "10.1/x", "score": 3.0},
+            {"junk": "no usable fields"},
+        ]
+    }
+    f = Path(tmp) / "digest.json"
+    f.write_text(json.dumps(raw))
+    items = pr.load_discovery(str(f))
+    check("discovery normalized count", len(items) == 4)  # junk dropped
+    by_t = {i["title"]: i for i in items}
+    check("arxiv from arxiv_id", by_t["Mamba"]["arxiv"] == "2312.00752")
+    check("arxiv from id field", by_t["LoRA"]["arxiv"] == "2106.09685")
+    check("arxiv from url", by_t["Transformer"]["arxiv"] == "1706.03762")
+    check("score parsed float", by_t["Mamba"]["score"] == 9.5)
+    check("why from tldr alias", by_t["Mamba"]["why"] == "selective SSM")
+
+    q = pr.discovery_to_queue(items, project="Daily", top_k=3)
+    check("queue project", q["project"] == "Daily")
+    check("top_k applied", len(q["papers"]) == 3)
+    check("sorted by score desc", q["papers"][0]["title"] == "Mamba")
+    check("score→priority P1 for top", q["papers"][0]["priority"] == "P1")
+    check("why→relevance", q["papers"][0]["relevance"] == "selective SSM")
+    check("title-only→zotero", any("zotero" in p for p in
+          pr.discovery_to_queue(items)["papers"]))
+
+    # min_score filter
+    q2 = pr.discovery_to_queue(items, min_score=7.0)
+    check("min_score filter", len(q2["papers"]) == 2)
+
+    # the generated queue must pass the real queue validator
+    qy = Path(tmp) / "disc_queue.yaml"
+    lines = ["project: Daily", "papers:"]
+    for p in q["papers"]:
+        src = "arxiv" if "arxiv" in p else "zotero"
+        lines += [f"  - id: {p['id']}", f'    {src}: "{p.get("arxiv") or p.get("zotero")}"']
+    qy.write_text("\n".join(lines) + "\n")
+    check("discovery queue re-parses", len(ph.parse_paper_queue(str(qy))["papers"]) == 3)
+
+
+# ---------------------------------------------------------------------------
 def main():
     with tempfile.TemporaryDirectory() as tmp:
         test_config_defaults()
@@ -381,6 +429,7 @@ def main():
         test_arxiv_parse()
         test_state(tmp)
         test_refs(tmp)
+        test_discovery(tmp)
 
     print()
     if _failures:

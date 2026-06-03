@@ -5,7 +5,7 @@
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 ![Claude Code skill](https://img.shields.io/badge/Claude%20Code-skill-8A2BE2)
 ![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)
-![tests 76 passing](https://img.shields.io/badge/tests-76%20passing-brightgreen)
+![tests 90 passing](https://img.shields.io/badge/tests-90%20passing-brightgreen)
 
 [English](README.md) · **简体中文**
 
@@ -24,8 +24,8 @@
 **一图速览：**
 
 ```text
-  INPUT · 6 modes
-  PDF · arXiv · Zotero collection · folder · YAML queue · .bib / references
+  INPUT · 7 modes
+  PDF · arXiv · Zotero · folder · YAML queue · .bib/references · discovery feed
                           │
                           ▼   build & dedup queue
   ┌────────────────── PIPELINE · 5 phases  (parallel by default) ──────────────────┐
@@ -50,7 +50,7 @@
   _concepts/ ──────────────────────────── linked concept graph
 ```
 
-> 输入（6 种模式）→ 五阶段流水线（默认并行，Phase 2 三路 subagent 扇出）→ 每篇一个自洽的三件套产物 + vault 级索引。
+> 输入（7 种模式）→ 五阶段流水线（默认并行，Phase 2 三路 subagent 扇出）→ 每篇一个自洽的三件套产物 + vault 级索引。
 
 ---
 
@@ -136,7 +136,7 @@ papers:
 
 每篇论文只需 `path` / `arxiv` / `zotero` 三者其一。完整规范见 `skills/prism/assets/queue-format.md`。
 
-### 六种输入模式——同一条流水线，不同的队列来源
+### 七种输入模式——同一条流水线，不同的队列来源
 
 | 模式 | 你说什么 | 来源 |
 |------|----------|------|
@@ -145,13 +145,15 @@ papers:
 | 3 · Zotero 分类 | `process my Zotero "X" collection` | 一个 Zotero 分类（递归） |
 | 4 · YAML 队列 | `batch from papers.yaml` | 可纳入 git 的队列文件（推荐） |
 | 5 · Zotero 查询 | `process Zotero papers tagged X` | 一个 Zotero 标签/查询 |
-| 6 · 参考文献 / `.bib` | `process this paper's references` · `batch from refs.bib` | 一篇论文的参考文献，或一个 LaTeX `.bib` |
+| 6 · 参考文献 / `.bib` | `process this paper's references` · `batch from refs.bib` | 一篇论文的参考文献，或 LaTeX `.bib` |
+| 7 · 发现源 | `today's papers → deck the top 5` · `batch from digest.json` | 一个推荐 feed（每日精选、主题检索…） |
 
-模式 6 把整张引用清单变成一个队列——零依赖 BibTeX 解析器 + arXiv-id/DOI 提取（`skills/prism/assets/prism_refs.py`）：
+模式 1–6 是「你指着自己已有的论文」；**模式 7 是「发现源把论文送到你面前」**。prism **不抓取、不打分**——那留给独立的上游 skill（每日精选、文献检索、Semantic Scholar、arXiv）。它们只吐一个 `{title, arxiv?, score?, why?}` 的 JSON 列表（或 `.bib`）；prism 把它收进队列、折射留下的那些。这样 prism 始终是专注的深加工后端。
 
 ```bash
-python3 skills/prism/assets/prism_refs.py bib refs.bib      # .bib  → 队列
-python3 skills/prism/assets/prism_refs.py pdf paper.pdf      # PDF 参考文献 → 队列
+python3 skills/prism/assets/prism_refs.py bib  refs.bib            # .bib       → 队列
+python3 skills/prism/assets/prism_refs.py pdf  paper.pdf           # PDF 参考文献 → 队列
+python3 skills/prism/assets/prism_refs.py discovery digest.json --top 5   # feed → 队列
 ```
 
 ---

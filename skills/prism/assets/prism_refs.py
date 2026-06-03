@@ -16,9 +16,16 @@ refs_to_queue maps arXiv-bearing entries to `arxiv:` queue items and the rest to
 `zotero:` (title search) items, so the result is a valid queue (see
 queue-format.md). Optional PyYAML is used to emit YAML; otherwise JSON.
 
+It also ingests **discovery sources** (a daily digest, a topic search, any
+recommender): prism doesn't scrape or score — that stays in separate upstream
+skills (daily-papers, research-lit, semantic-scholar, arxiv). A discovery source
+just emits a JSON list of {title, arxiv?, doi?, score?, why?} and prism turns the
+keepers into a queue.
+
 CLI:
     python3 prism_refs.py bib refs.bib [--project NAME]
-    python3 prism_refs.py pdf paper.pdf [--project NAME]   (needs pdftotext)
+    python3 prism_refs.py pdf paper.pdf [--project NAME]        (needs pdftotext)
+    python3 prism_refs.py discovery digest.json [--top 5] [--project NAME]
     python3 prism_refs.py ids "<free text>"
 """
 from __future__ import annotations
@@ -289,6 +296,120 @@ def refs_to_queue(entries: list[dict], project: str = "Refs",
 
 
 # ---------------------------------------------------------------------------
+# Discovery sources  (daily digest / topic search / any recommender → queue)
+# ---------------------------------------------------------------------------
+# prism does NOT scrape or score — those stay in separate upstream skills
+# (daily-papers, research-lit, semantic-scholar, arxiv, ...). prism only ingests
+# their output. The contract: a discovery source emits a JSON list of records,
+# each carrying at least a title and/or an arXiv id, optionally a score and a
+# one-line reason. Field names are matched leniently below.
+_DISCO_ALIASES = {
+    "title": ("title", "name", "paper_title"),
+    "arxiv": ("arxiv", "arxiv_id", "arxivId", "arxivID", "eprint"),
+    "doi": ("doi", "DOI"),
+    "score": ("score", "rating", "relevance_score", "relevanceScore"),
+    "why": ("why", "reason", "tldr", "TLDR", "recommendation", "comment", "note", "summary"),
+}
+
+
+def _pick(d: dict, keys: tuple) -> Any:
+    for k in keys:
+        if d.get(k) not in (None, ""):
+            return d[k]
+    return ""
+
+
+def normalize_discovery_items(raw: list) -> list[dict]:
+    """Normalize heterogeneous recommender records to
+    {title, arxiv, doi, score, why}. Accepts varied field names + arXiv ids
+    embedded in an `id` field or a `url`."""
+    out: list[dict] = []
+    for r in raw:
+        if not isinstance(r, dict):
+            continue
+        title = str(_pick(r, _DISCO_ALIASES["title"])).strip()
+        arxiv = str(_pick(r, _DISCO_ALIASES["arxiv"])).strip()
+        if not arxiv:
+            cand = str(r.get("id", "")).strip()
+            if re.fullmatch(_ARXIV_ANY, cand):
+                arxiv = cand
+        if not arxiv and r.get("url"):
+            ids = extract_arxiv_ids(str(r["url"]))
+            arxiv = ids[0] if ids else ""
+        doi = str(_pick(r, _DISCO_ALIASES["doi"])).strip()
+        raw_score = _pick(r, _DISCO_ALIASES["score"])
+        try:
+            score = float(raw_score)
+        except (TypeError, ValueError):
+            score = None
+        why = str(_pick(r, _DISCO_ALIASES["why"])).strip()
+        if title or arxiv or doi:
+            out.append({"title": title, "arxiv": arxiv, "doi": doi, "score": score, "why": why})
+    return out
+
+
+def load_discovery(path: str) -> list[dict]:
+    """Load + normalize a discovery JSON. Accepts a bare list, or an object with
+    a papers / results / items / recommendations / data list."""
+    data = json.loads(Path(path).expanduser().read_text())
+    if isinstance(data, dict):
+        for k in ("papers", "results", "items", "recommendations", "data"):
+            if isinstance(data.get(k), list):
+                data = data[k]
+                break
+        else:
+            data = [data]
+    return normalize_discovery_items(data)
+
+
+def _score_to_priority(score: float | None, hi: float, lo: float) -> str:
+    if score is None:
+        return "P2"
+    if score >= hi:
+        return "P1"
+    if score >= lo:
+        return "P2"
+    return "P3"
+
+
+def discovery_to_queue(
+    items: list[dict],
+    project: str = "Discovery",
+    parallel: int = 4,
+    top_k: int | None = None,
+    min_score: float | None = None,
+) -> dict:
+    """Recommender items → a prism queue. Filters by min_score, sorts by score
+    (desc), takes top_k. score → priority (P1/P2/P3), why/tldr → relevance.
+    arXiv-bearing items become `arxiv:` queue entries; title-only → `zotero:`."""
+    items = [i for i in items
+             if min_score is None or (i.get("score") is not None and i["score"] >= min_score)]
+    scored = [i["score"] for i in items if i.get("score") is not None]
+    if scored:
+        items.sort(key=lambda i: (i.get("score") is not None, i.get("score") or 0.0), reverse=True)
+        hi = max(scored)
+        lo = (min(scored) + hi) / 2 if len(scored) > 1 else hi
+    else:
+        hi = lo = 0.0
+    if top_k:
+        items = items[:top_k]
+    papers, dropped = [], 0
+    for n, it in enumerate(items, 1):
+        prio = _score_to_priority(it.get("score"), hi, lo)
+        rel = it.get("why") or "—"
+        if it["arxiv"]:
+            papers.append({"id": f"disc{n}", "arxiv": it["arxiv"], "title": it["title"],
+                           "category": "discovery", "relevance": rel, "priority": prio})
+        elif it["title"]:
+            papers.append({"id": f"disc{n}", "zotero": it["title"], "title": it["title"],
+                           "category": "discovery", "relevance": rel, "priority": prio})
+        else:
+            dropped += 1
+    return {"project": project, "parallel": parallel, "notes_strategy": "full",
+            "papers": papers, "_dropped": dropped}
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 def _emit(queue: dict) -> None:
@@ -311,11 +432,16 @@ def _main() -> None:
     project = "Refs"
     if "--project" in sys.argv:
         project = sys.argv[sys.argv.index("--project") + 1]
+    top = None
+    if "--top" in sys.argv:
+        top = int(sys.argv[sys.argv.index("--top") + 1])
     if cmd == "bib":
         _emit(refs_to_queue(parse_bib(sys.argv[2]), project))
     elif cmd == "pdf":
         _emit(refs_to_queue(parse_references_from_text(
             references_text_from_pdf(sys.argv[2])), project))
+    elif cmd == "discovery":
+        _emit(discovery_to_queue(load_discovery(sys.argv[2]), project, top_k=top))
     elif cmd == "ids":
         print("\n".join(extract_arxiv_ids(sys.argv[2])))
     else:
