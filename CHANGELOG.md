@@ -27,6 +27,26 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **READMEs restructured install-first** (EN + 简体中文): Install + Quick start moved to
   the top; the why/how/rationale moved below a divider.
 
+### Fixed
+Two review passes (codex + an integral review) — every material finding addressed:
+- **Concurrency / resume integrity**: `update_paper` now takes a cross-process `flock`,
+  so parallel coordinators no longer last-writer-wins-drop each other's state entries;
+  `is_paper_done` / `resume_plan` require the PDF `%%EOF` trailer, so a crash-truncated
+  deck is no longer mistaken for done and silently skipped on resume.
+- **Skill correctness**: `allowed-tools` grants `Agent` (the fan-out's subagent tool —
+  allowed-tools is enforced); `safe_name()` is ASCII-only (was keeping CJK/Greek);
+  `quality-standards.md` replaced a markdown-table example with the screenshot SOP (it
+  contradicted the iron rule); `image-troubleshooting.md` signatures aligned to source.
+- **New deterministic helpers**: `download_arxiv_pdf()` (id-validated, `%PDF-` verified),
+  and `extract_concepts()` / `plan_concepts()` (the mechanical half of Step 6).
+- **Hardening**: `find_item_key` prefers the copy that has a PDF; a no-PDF Zotero item
+  emits an `arxiv:` source from metadata instead of `path:None`; malformed config /
+  discovery JSON raises a clear `"not valid JSON: <path>"` error; the installer reports
+  "installed but NOT ready" on a missing required dep; `copy_paper_pdf` compares the head,
+  not just size; `/tmp`→`.cache` doc fixes for the durable Phase-2 artifacts;
+  `zotero_helper.py`→`zotero.py` and other doc/code-name alignments.
+- Tests: 132 → **153** (zero external dependencies).
+
 ## [0.1.0] - 2026-06-03
 
 First public release. paper-prism is a major rework of the `paper-reader` skill by
