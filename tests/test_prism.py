@@ -306,11 +306,28 @@ def test_state(tmp):
 
     # is_paper_done: needs a real-sized slides.pdf
     check("not done (no pdf)", ps.is_paper_done(str(deck), "Mamba") is False)
-    (deck / "Mamba.slides.pdf").write_bytes(b"0" * (60 * 1024))
+    (deck / "Mamba.slides.pdf").write_bytes(b"%PDF-1.5\n" + b"0" * (60 * 1024) + b"\n%%EOF\n")
     (deck / "Mamba.slides.pptx").write_bytes(b"0")
     (deck / "Mamba.slides.md").write_text("deck")
-    check("done with real pdf", ps.is_paper_done(str(deck), "Mamba") is True)
+    check("done with complete pdf (size + %%EOF)", ps.is_paper_done(str(deck), "Mamba") is True)
     check("render skippable", ps.resume_plan(str(deck), "Mamba")["render"] is True)
+    # R5: a big but TRUNCATED pdf (no %%EOF trailer) must NOT count as done
+    (deck / "Mamba.slides.pdf").write_bytes(b"%PDF-1.5\n" + b"0" * (60 * 1024))
+    check("R5 truncated pdf (no %%EOF) not done", ps.is_paper_done(str(deck), "Mamba") is False)
+    check("R5 truncated pdf → render not skippable", ps.resume_plan(str(deck), "Mamba")["render"] is False)
+    (deck / "Mamba.slides.pdf").write_bytes(b"%PDF-1.5\n" + b"0" * (60 * 1024) + b"\n%%EOF\n")  # restore
+
+    # R4: concurrent update_paper on one state file must not drop entries
+    import threading
+    methods = [f"M{i}" for i in range(10)]
+    ts = [threading.Thread(target=lambda m=m: ps.update_paper(proj, m, cfg, status="done"))
+          for m in methods]
+    for t in ts:
+        t.start()
+    for t in ts:
+        t.join()
+    check("R4 concurrent updates keep all entries",
+          set(methods) <= set(ps.load_state(proj, cfg)["papers"]))
 
     # purge cache removes durable intermediates
     ps.purge_cache(str(deck))
@@ -624,6 +641,20 @@ def test_arxiv_download(tmp):
         ph._http_get = real
 
 
+def test_concepts(tmp):
+    print("concept extraction / planning")
+    txt = "Uses [[Mamba]] and [[Selective SSM|selection]] and [[Mamba]] again, plus [[Transformer]]."
+    cs = ph.extract_concepts(txt)
+    check("extract dedups + strips alias", cs == ["Mamba", "Selective SSM", "Transformer"])
+    cdir = Path(tmp) / "_concepts"
+    cdir.mkdir(exist_ok=True)
+    (cdir / "Transformer.md").write_text("x")
+    plan = ph.plan_concepts(cs, str(cdir), budget=1)
+    check("plan reuses existing", plan["reuse"] == ["Transformer"])
+    check("plan creates up to budget", plan["create"] == ["Mamba"])
+    check("plan bolds over-budget", plan["bold"] == ["Selective SSM"])
+
+
 # ---------------------------------------------------------------------------
 def main():
     with tempfile.TemporaryDirectory() as tmp:
@@ -643,6 +674,7 @@ def main():
         test_zotero(tmp)
         test_marp_missing(tmp)
         test_arxiv_download(tmp)
+        test_concepts(tmp)
 
     print()
     if _failures:

@@ -202,7 +202,7 @@ something the reader can re-explain unaided.
 | Q6 | What do the equations do? | 2–5 key formulas, each with intuition |
 | Q7 | How validated? | datasets + baselines + metrics + ablations |
 | Q8 | Where do gains come from? | structure / training / data / compute, quant+qual |
-| Q9 | Limitations | ≥2; mark unstated ones 【inferred】 |
+| Q9 | Limitations | ≥2 minimum (aim for ~5 in a full read); mark unstated 【inferred】 |
 | Q10 | Transferable? | 1–3 coherent extensions |
 | Q11 | How to improve? | 2–3 ideas with upside/risk |
 | Q12 | Explain in 2–3 sentences | the spoken-intro version |
@@ -456,11 +456,13 @@ to allow opening external links — allow it.
 
 ## Step 6 · Concept-library maintenance (every paper)
 
-Scan the note's `[[concept]]` links; for each, reuse if a note (or alias) exists,
-else create it under the right category. **Budget: ≤ `cfg.concept_budget`
-(default 8) new concepts per paper** — beyond that, downgrade extras to bold and
-list them under "Concepts not yet created". Alias-dedup avoids
-`Mamba`/`Mamba SSM`/`Selective SSM` becoming three files. Categories, templates,
+The deterministic half is a helper: `extract_concepts(note_text)` pulls the unique
+`[[concept]]` names, and `plan_concepts(concepts, str(concepts_path(cfg)), cfg["concept_budget"])`
+splits them into **reuse** (a note already exists), **create** (up to the budget),
+and **bold** (the overflow — list it under "Concepts not yet created"). For each name
+in `create`, write the concept note under the right category. The LLM still does the
+*semantic* work: writing each note's body and merging aliases so
+`Mamba`/`Mamba SSM`/`Selective SSM` don't become three files. Categories, templates,
 and the budget/dedup rules: `references/concept-categories.md`.
 
 ---

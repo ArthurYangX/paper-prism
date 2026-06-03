@@ -153,7 +153,10 @@ def load_config(path: str | None = None) -> dict[str, Any]:
     candidates = [Path(path).expanduser()] if path else _config_search_paths()
     for p in candidates:
         if p.is_file():
-            user = json.loads(p.read_text())
+            try:
+                user = json.loads(p.read_text())
+            except (json.JSONDecodeError, OSError) as e:
+                raise ValueError(f"config file {p} is not valid JSON: {e}") from e
             cfg = _deep_merge(cfg, user)
             cfg["_config_source"] = str(p)
             break

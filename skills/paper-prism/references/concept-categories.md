@@ -32,7 +32,7 @@ First run `ls {CONCEPTS_PATH}` to see the existing subfolders, then categorize u
 
 ## Concept creation budget (prevents explosion during batch processing)
 
-For large-scale batch processing (>10 papers), **create at most 8 new concept notes per paper**:
+**Create at most `cfg.concept_budget` (default 8) new concept notes per paper** — always, not only for large batches; `plan_concepts()` enforces it deterministically and downgrades the overflow to bold:
 
 1. Scan all `[[concept]]` links in the note → deduplicate
 2. Check each concept in the following order:

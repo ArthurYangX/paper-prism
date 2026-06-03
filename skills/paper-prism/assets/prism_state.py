@@ -25,13 +25,44 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+import contextlib
 
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from prism_config import load_config, project_path, SCHEMA_VERSION  # noqa: E402
 
+try:
+    import fcntl
+    _HAVE_FLOCK = True
+except ImportError:  # pragma: no cover — Windows has no fcntl
+    _HAVE_FLOCK = False
+
 PHASES = ("analysis", "figures", "tables", "synth", "render", "bind")
 _DONE_MIN_PDF_BYTES = 50 * 1024  # a real deck is comfortably bigger than this
+
+
+@contextlib.contextmanager
+def _state_lock(state_file: Path):
+    """Cross-process exclusive lock around a state read-modify-write.
+
+    Under `parallel:N`, several paper coordinators update the SAME per-project
+    state file concurrently. Without a lock the load → modify → save races and a
+    last-writer-wins overwrite silently drops another paper's entry (the atomic
+    write only prevents a *corrupt* file, not a lost update). flock serializes the
+    whole read-modify-write. On a platform without flock (Windows) this degrades to
+    a best-effort no-op rather than crashing.
+    """
+    if not _HAVE_FLOCK:
+        yield
+        return
+    state_file.parent.mkdir(parents=True, exist_ok=True)
+    lock = state_file.with_name(state_file.name + ".lock")
+    with open(lock, "w") as lf:
+        fcntl.flock(lf, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(lf, fcntl.LOCK_UN)
 
 
 def _now() -> str:
@@ -96,21 +127,22 @@ def update_paper(
 
     Idempotent and safe under repeated calls; the caller doesn't manage the file.
     """
-    state = load_state(project, cfg)
-    rec = state["papers"].setdefault(method, {"status": "queued", "phases": {}, "updated": None})
-    if status is not None:
-        rec["status"] = status
-    if phase_done is not None:
-        if phase_done not in PHASES:
-            raise ValueError(f"unknown phase {phase_done!r}; expected one of {PHASES}")
-        rec.setdefault("phases", {})[phase_done] = True
-    if error is not None:
-        rec["error"] = error
-    elif status == "done":
-        rec["error"] = None
-    rec.update(extra)
-    rec["updated"] = _now()
-    save_state(state, project, cfg)
+    with _state_lock(state_path(project, cfg)):
+        state = load_state(project, cfg)
+        rec = state["papers"].setdefault(method, {"status": "queued", "phases": {}, "updated": None})
+        if status is not None:
+            rec["status"] = status
+        if phase_done is not None:
+            if phase_done not in PHASES:
+                raise ValueError(f"unknown phase {phase_done!r}; expected one of {PHASES}")
+            rec.setdefault("phases", {})[phase_done] = True
+        if error is not None:
+            rec["error"] = error
+        elif status == "done":
+            rec["error"] = None
+        rec.update(extra)
+        rec["updated"] = _now()
+        save_state(state, project, cfg)
     return state
 
 
@@ -142,17 +174,33 @@ def _nonempty(p: Path) -> bool:
     return p.is_file() and p.stat().st_size > 0
 
 
+def _is_complete_pdf(p: Path) -> bool:
+    """A deck PDF counts only if it's a real size AND ends with the PDF trailer
+    (`%%EOF`). marp writes non-atomically, so a crash mid-render can leave a large
+    but TRUNCATED PDF; a size-only check would mark it done and resume would
+    silently skip it. The trailer check rejects a half-written file.
+    """
+    if not (p.is_file() and p.stat().st_size > _DONE_MIN_PDF_BYTES):
+        return False
+    try:
+        with open(p, "rb") as f:
+            f.seek(-min(1024, p.stat().st_size), os.SEEK_END)
+            return b"%%EOF" in f.read()
+    except OSError:
+        return False
+
+
 # ---------------------------------------------------------------------------
 # Resume logic
 # ---------------------------------------------------------------------------
 def is_paper_done(deck_dir: str, method: str) -> bool:
-    """A paper is done if its slide deck PDF exists and is a real size.
+    """A paper is done if its slide deck PDF exists, is a real size, and ends with
+    the PDF trailer — so a crash-truncated deck is not mistaken for done.
 
     Cheap, filesystem-only check used by the batch dedup pass — no state file
     needed, so it works even on a vault paper-prism has never tracked.
     """
-    pdf = Path(deck_dir) / f"{method}.slides.pdf"
-    return pdf.is_file() and pdf.stat().st_size > _DONE_MIN_PDF_BYTES
+    return _is_complete_pdf(Path(deck_dir) / f"{method}.slides.pdf")
 
 
 def resume_plan(deck_dir: str, method: str) -> dict[str, bool]:
@@ -178,8 +226,7 @@ def resume_plan(deck_dir: str, method: str) -> dict[str, bool]:
         "figures": _nonempty(c / f"{method}_figmap.json"),
         "tables": _nonempty(c / f"{method}_tablemap.json"),
         "synth": _nonempty(d / f"{method}.slides.md"),
-        "render": pdf.is_file() and pdf.stat().st_size > _DONE_MIN_PDF_BYTES
-        and (d / f"{method}.slides.pptx").is_file(),
+        "render": _is_complete_pdf(pdf) and (d / f"{method}.slides.pptx").is_file(),
         "bind": False,
     }
 

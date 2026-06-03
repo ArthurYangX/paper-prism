@@ -363,7 +363,10 @@ def normalize_discovery_items(raw: list) -> list[dict]:
 def load_discovery(path: str) -> list[dict]:
     """Load + normalize a discovery JSON. Accepts a bare list, or an object with
     a papers / results / items / recommendations / data list."""
-    data = json.loads(Path(path).expanduser().read_text())
+    try:
+        data = json.loads(Path(path).expanduser().read_text())
+    except (json.JSONDecodeError, OSError) as e:
+        raise ValueError(f"discovery file {path} is not valid JSON: {e}") from e
     if isinstance(data, dict):
         for k in ("papers", "results", "items", "recommendations", "data"):
             if isinstance(data.get(k), list):

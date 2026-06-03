@@ -271,8 +271,11 @@ def copy_paper_pdf(src_pdf: str, dst_dir: str, method_name: str) -> str:
     method_name = safe_name(method_name)
     Path(dst_dir).mkdir(parents=True, exist_ok=True)
     dst = Path(dst_dir) / f"{method_name}.pdf"
-    if dst.exists() and dst.stat().st_size == Path(src_pdf).stat().st_size:
-        return str(dst)
+    src = Path(src_pdf)
+    if dst.exists() and dst.stat().st_size == src.stat().st_size:
+        with open(dst, "rb") as fd, open(src, "rb") as fs:
+            if fd.read(4096) == fs.read(4096):   # same size + same head → already copied
+                return str(dst)
     shutil.copy2(src_pdf, dst)
     return str(dst)
 
@@ -506,6 +509,47 @@ def update_project_moc(
                 new = content.rstrip() + "\n" + build_row(1) + "\n"
     p.write_text(new)
     return True
+
+
+# ===========================================================================
+# 7-bis. Concept extraction / planning  (the deterministic half of Step 6)
+# ===========================================================================
+_WIKILINK = re.compile(r"\[\[([^\[\]|#]+)(?:[|#][^\[\]]*)?\]\]")
+
+
+def extract_concepts(note_text: str) -> list[str]:
+    """Unique `[[concept]]` names from note text — drops `|alias` and `#anchor`,
+    de-dups case-insensitively, preserves first-seen order."""
+    seen: set[str] = set()
+    out: list[str] = []
+    for m in _WIKILINK.finditer(note_text):
+        name = m.group(1).strip()
+        k = name.lower()
+        if name and k not in seen:
+            seen.add(k)
+            out.append(name)
+    return out
+
+
+def plan_concepts(concepts: list[str], concepts_dir: str, budget: int = 8) -> dict:
+    """Split extracted concepts into reuse / create / bold — the deterministic half
+    of Step 6 (the LLM still writes each new note's body and does semantic
+    alias-merge):
+
+    - **reuse**: a `{name}.md` already exists in concepts_dir → no new file.
+    - **create**: up to `budget` NEW concepts get their own note.
+    - **bold**: anything beyond the budget → downgrade to bold ("Concepts not yet
+      created"), so one paper never mints an unbounded swarm of stub links.
+
+    Existence is matched case-insensitively against existing `*.md` stems.
+    """
+    cdir = Path(concepts_dir)
+    existing = {p.stem.lower() for p in cdir.glob("*.md")} if cdir.is_dir() else set()
+    reuse, fresh = [], []
+    for name in concepts:
+        (reuse if name.lower() in existing else fresh).append(name)
+    b = max(0, budget)
+    return {"reuse": reuse, "create": fresh[:b], "bold": fresh[b:]}
 
 
 # ===========================================================================
