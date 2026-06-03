@@ -25,3 +25,10 @@ prism_errors.log
 # draw.io desktop backups
 *.drawio.bkp
 .$*
+
+# --- showcase: keep lightweight artifacts (notes, slide source, screenshots,
+#     MOCs, slide previews); exclude the heavy, regenerable binaries ---
+examples/showcase/run-attention/prism-demo-config.json
+examples/showcase/run-attention/attention.pdf
+examples/showcase/run-attention/vault/**/*.pdf
+examples/showcase/run-attention/vault/**/*.pptx

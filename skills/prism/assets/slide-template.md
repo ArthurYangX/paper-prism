@@ -24,6 +24,9 @@ style: |
   section.insight h2 { color: #c05621; border-color: #fbd38d; }
   section.takeaway { background: #1a365d; color: white; }
   section.takeaway h1, section.takeaway h2 { color: #f6e05e; }
+  section.takeaway blockquote { color: #ebf4ff; border-left-color: #f6e05e; }
+  section.takeaway table, section.takeaway tr, section.takeaway tr:nth-child(2n), section.takeaway td { background: transparent !important; color: #ffffff; border-color: #4a6fa5; }
+  section.takeaway th { background: transparent !important; color: #f6e05e; border-color: #4a6fa5; }
   .star { color: #d69e2e; }
   .small { font-size: 16px; color: #718096; }
   .tag { background: #edf2f7; padding: 2px 8px; border-radius: 4px; font-size: 17px; margin-right: 4px; }

@@ -117,12 +117,14 @@ Why co-location beats scattered markdown:
   maintains a per-project queue with status/priority/relevance columns. You get
   both the local package *and* the global views.
 - **Re-runs protect hand-written notes.** This is the subtle, important one. The
-  binders are idempotent and surgical: `inject_resources_block` refreshes *only*
-  the resources block — it replaces from the heading up to the next `#`/`##` and
-  bails if there isn't one — so if you have been hand-editing a note's prose,
-  re-running prism updates the links at the top and **never touches your
-  writing** (unless you explicitly say "rewrite"). The MOC functions match the
-  paper's existing row by `[[method_name]]` and edit in place. Process a paper
+  binders are idempotent and surgical: `inject_resources_block` wraps the links in
+  `<!-- prism:resources:start/end -->` sentinels and refreshes *strictly between
+  them*, so re-running prism updates the links at the top and **never touches your
+  writing** — not even a metadata table or prose placed directly below the block.
+  (An earlier heading-to-next-`##` heuristic could swallow whatever followed the
+  bullet list; the sentinels make that class of data loss impossible, and legacy
+  blocks without sentinels are migrated on first contact.) The MOC functions match
+  the paper's existing row by `[[method_name]]` and edit in place. Process a paper
   twice and you get one row and one resources block, not duplicates.
 
 The cost: this is more machinery than dropping a single `.md` in a folder, and
@@ -215,3 +217,40 @@ The asymmetry is intentional: output language is a *preference* (pick one),
 recognition is *robustness* (accept both). Conflating them — only recognizing
 triggers in the configured output language — would make the tool fail to fire
 exactly when a bilingual user reaches for it in their other language.
+
+---
+
+## Optional layout backend (MinerU) — roadmap, not default
+
+prism's figure/table extraction is deliberately low-dependency: `pdftoppm`
+renders pages, the analyst eyeballs each bounding box, and `crop_region` (PIL)
+cuts it out, with a Read → verify → re-crop loop to catch truncation. The whole
+path needs only poppler + Pillow, so it clones and runs anywhere.
+
+A document-layout model such as **MinerU** would automate the one manual step —
+*detecting* the figure/table bounding boxes instead of eyeballing them — and as a
+bonus reads formulas to LaTeX (useful for Q6). That is genuinely attractive for
+figure-dense papers, where hand-locating a dozen boxes is the slow part.
+
+It stays a **roadmap item, not a default**, for three reasons:
+
+1. **Naive use would violate the iron rule.** MinerU's headline output turns
+   tables into HTML/markdown — exactly what prism forbids. The only sanctioned use
+   is to take its table *bounding box* and still screenshot the region; its
+   table-to-text output is discarded.
+2. **It is heavy.** MinerU pulls in PyTorch and multi-gigabyte layout/OCR/formula
+   models. As a hard dependency it would destroy prism's "clone and run" property,
+   so it can only ever be an **optional backend** — lazily imported, used when
+   present, absent otherwise — never on the default path.
+3. **Vector figures still need verification.** Many architecture diagrams are
+   vector art; a detector on the rasterized page usually works, but the crop still
+   needs the same Read-verify pass, so it augments the existing loop rather than
+   replacing it.
+
+The clean integration shape: a detector that emits boxes feeding the *same*
+`crop_region` + Read-verify path the manual flow already uses (so the iron rule
+holds by construction), gated behind an optional dependency. Until then, the
+manual SOP above is the supported path. (Validated on the Transformer showcase
+run: the manual loop's Read-verify step is exactly what caught a sub-agent's
+truncated table crops before they shipped — the guarantee any auto-detector must
+preserve.)
