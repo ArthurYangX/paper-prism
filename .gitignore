@@ -21,3 +21,7 @@ prism_errors.log
 .idea/
 .vscode/
 *.swp
+
+# draw.io desktop backups
+*.drawio.bkp
+.$*

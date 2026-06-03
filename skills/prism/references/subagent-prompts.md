@@ -28,7 +28,7 @@ You are running prism's Step 2 deep analysis as an isolated task.
 - skills/prism/references/twelve-questions.md  (full 12-Q template + self-checks)
 - skills/prism/assets/paper-note-template.md   (main-note structure)
 
-## Task A — twelve questions  →  /tmp/{method}_qa.md
+## Task A — twelve questions  →  {deck_dir}/.cache/{method}_qa.md
 Answer all twelve questions in full. Each answer carries its "how I'd know I
 understood it" self-check. Put the TL;DR (Q12) first.
 - Q3 (core insight) must be INTUITION — "the regularity the authors exploit" —
@@ -37,7 +37,7 @@ understood it" self-check. Put the TL;DR (Q12) first.
 - Q6: 2–5 key formulas, each as a triplet (meaning + intuition + symbol table).
 - Q9: ≥5 honest limitations; mark anything the paper doesn't state 【inferred】.
 
-## Task B — main-note body  →  /tmp/{method}_note_body.md
+## Task B — main-note body  →  {deck_dir}/.cache/{method}_note_body.md
 Write the long-form note body following paper-note-template.md (no frontmatter,
 no top title — the coordinator assembles those). Sections: Key Contributions /
 Background (problem · prior-gap · motivation) / Method (one paragraph PER module:

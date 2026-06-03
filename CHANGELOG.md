@@ -55,8 +55,33 @@ top of, or substantially reworks from, that base.
 - **Stdlib-first helper library** (`prism_helpers.py`, `prism_config.py`) for
   PDF rendering, PIL cropping, arXiv figure download, Marp rendering, the binding
   writers, and the queue parsers — optional deps lazily imported.
-- **Test suite** — 90 checks, zero external dependencies
+- **Test suite** — 132 checks, zero external dependencies
   (`python3 tests/test_prism.py`), covering config/labels, the three binders,
-  both MOC writers, the queue parsers, and the checkpoint/resume logic.
+  both MOC writers, the queue parsers, checkpoint/resume, reference/discovery
+  ingestion, a synthetic-SQLite Zotero fixture, and the security/robustness
+  regressions below.
+
+### Security & robustness (pre-release hardening from a parallel review swarm)
+
+- **No-data-loss resources block** — the auto-managed links block is now delimited
+  by `<!-- prism:resources:start/end -->` sentinels and refreshed strictly between
+  them, so a re-bind can never delete a metadata table or prose a user wrote below
+  the links (previously a greedy regex could). Legacy blocks migrate safely.
+- **Path-traversal guard** — `safe_name()` sanitises any paper-derived
+  `method_name`/`project` before it touches a vault path (no `../`, no escape).
+- **Figure-download allowlist** — only `https` on `arxiv.org` is fetched; `file://`,
+  `ftp://`, protocol-relative, and off-host URLs from parsed HTML are blocked
+  (prevents SSRF / local-file reads). arXiv ids are shape-validated before use.
+- **Queue validation** — `parse_paper_queue` enforces the documented contract
+  (project ASCII, parallel 1–8, notes_strategy enum, one source per paper, `.pdf`
+  paths, filesystem-safe `method_name`), honours `skip:` and `default_priority`/
+  `default_status`, and no longer crashes on an empty/comment-only file.
+- **Checkpoint schema gate** — the state file carries a `schema_version`; an
+  incompatible/old state is reset rather than resumed from stale artifacts.
+- **Zotero temp DB** — copied to a private `0600` temp file (unique name, removed
+  at exit) instead of a world-readable fixed `/tmp` path; still strictly read-only.
+- Subprocess timeouts (`pdftoppm`/`marp`/`pdftotext`), a small `urlopen` retry,
+  stricter old-style arXiv-id matching, quote-aware mini-YAML comments, and a
+  fixed `zotero.search` ordering bug found by the new fixture.
 
 [0.1.0]: https://github.com/yangjc27/prism/releases/tag/v0.1.0

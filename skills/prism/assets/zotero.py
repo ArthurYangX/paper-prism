@@ -26,7 +26,9 @@ Note: read-only by design — prism never modifies your Zotero library.
 from __future__ import annotations
 
 import argparse
+import atexit
 import json
+import os
 import shutil
 import sqlite3
 import sys
@@ -46,12 +48,20 @@ def _storage() -> Path:
 
 
 def _connect() -> sqlite3.Connection:
-    """Connect to a temp copy of the DB to avoid locking the live library."""
+    """Connect to a temp copy of the DB to avoid locking the live library.
+
+    The copy goes to a PRIVATE temp file (mkstemp = unique name, mode 0600) so
+    other local users on a shared host can't read your Zotero library, and it is
+    removed at process exit. Read-only: the live DB is never opened for writing.
+    """
     src = _db_path()
     if not src.exists():
         raise FileNotFoundError(f"Zotero DB not found: {src} (set zotero_db in config)")
-    tmp = Path(tempfile.gettempdir()) / "prism_zotero_ro.sqlite"
-    shutil.copy(src, tmp)
+    fd, tmp = tempfile.mkstemp(prefix="prism_zotero_", suffix=".sqlite")
+    os.close(fd)
+    shutil.copyfile(src, tmp)        # data only — keeps mkstemp's 0600 perms
+    os.chmod(tmp, 0o600)             # belt-and-braces
+    atexit.register(lambda: os.path.exists(tmp) and os.unlink(tmp))
     return sqlite3.connect(tmp)
 
 
@@ -161,7 +171,7 @@ def search(keyword: str) -> list[dict]:
                 (SELECT value FROM itemData id2
                  JOIN itemDataValues idv2 ON id2.valueID = idv2.valueID
                  JOIN fields f2 ON id2.fieldID = f2.fieldID
-                 WHERE id2.itemID = i.itemID AND f2.fieldName = 'date' LIMIT 1)
+                 WHERE id2.itemID = i.itemID AND f2.fieldName = 'date' LIMIT 1) AS date
             FROM items i
             JOIN itemData id ON i.itemID = id.itemID
             JOIN itemDataValues idv ON id.valueID = idv.valueID

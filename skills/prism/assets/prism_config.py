@@ -22,8 +22,28 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from pathlib import Path
 from typing import Any
+
+__version__ = "0.1.0"
+SCHEMA_VERSION = 1  # bump when the state-file / durable-cache format changes
+
+
+def safe_name(name: str) -> str:
+    """Filesystem-safe identifier for a method or project name.
+
+    Keeps letters/digits/`. _ + -`, replaces anything else (path separators,
+    spaces, colons) with `_`, neutralises `..`, and strips leading/trailing
+    `.`/`_`. This is the defence-in-depth guard that prevents a paper-derived
+    `method_name`/`project` from escaping the vault via `../` or an absolute path
+    when it is interpolated into a path. Returns "untitled" if nothing survives.
+    """
+    s = re.sub(r"[^\w.+-]", "_", str(name))   # drops / \ : space etc.
+    while ".." in s:
+        s = s.replace("..", "_")
+    s = s.strip("._")
+    return s or "untitled"
 
 # ---------------------------------------------------------------------------
 # Defaults — prism imports and runs even with no config file present.
@@ -174,7 +194,7 @@ def notes_path(cfg: dict[str, Any] | None = None) -> Path:
 
 def project_path(project: str | None = None, cfg: dict[str, Any] | None = None) -> Path:
     cfg = cfg or load_config()
-    return notes_path(cfg) / (project or cfg["default_project"])
+    return notes_path(cfg) / safe_name(project or cfg["default_project"])
 
 
 def concepts_path(cfg: dict[str, Any] | None = None) -> Path:
@@ -189,7 +209,7 @@ def slides_moc_path(cfg: dict[str, Any] | None = None) -> Path:
 
 def project_moc_path(project: str | None = None, cfg: dict[str, Any] | None = None) -> Path:
     cfg = cfg or load_config()
-    proj = project or cfg["default_project"]
+    proj = safe_name(project or cfg["default_project"])
     return project_path(proj, cfg) / f"00 {proj}.md"
 
 

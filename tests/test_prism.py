@@ -85,12 +85,44 @@ def test_resources_block(tmp):
     check("private para survives", "private paragraph" in c2)
     check("resources refreshed", "NEW" in c2 and "old link" not in c2)
 
-    # protection: a note that is ONLY a resources block must not be eaten
+    # a note that is ONLY a (legacy) resources block: refresh it safely (no crash,
+    # new url present, sentinels added) — there is no prose to lose.
     only = Path(tmp) / "Only.md"
     only.write_text("# Paper Note: Only\n\n## Resources\n\n- a\n- b\n")
-    before = only.read_text()
-    ph.inject_resources_block(str(only), "Only", arxiv_url="Z", cfg=cfg)
-    check("no-heading-after: untouched", only.read_text() == before)
+    ph.inject_resources_block(str(only), "Only", arxiv_url="ZURL", cfg=cfg)
+    oc = only.read_text()
+    check("only-resources note refreshed", "ZURL" in oc and "prism:resources:start" in oc)
+
+    # 🔴 #1 REGRESSION: a metadata table BELOW the resources links must survive
+    # a re-bind (this is the data-loss bug the review caught).
+    tbl = Path(tmp) / "WithTable.md"
+    tbl.write_text(
+        "---\ntitle: x\n---\n\n# Paper Note: WithTable\n\n"
+        "## Resources\n\n- old paper\n- old slides\n\n"
+        "> keep this blockquote\n\n"
+        "| Field | Value |\n|---|---|\n| Affiliations | MIT |\n| Date | 2024 |\n\n"
+        "---\n\n## TL;DR\n\nuser summary\n"
+    )
+    ph.inject_resources_block(str(tbl), "WithTable", arxiv_url="https://first.example", cfg=cfg)
+    ph.inject_resources_block(str(tbl), "WithTable", arxiv_url="https://second.example", cfg=cfg)  # 2nd bind
+    c2 = tbl.read_text()
+    check("#1 metadata table survives re-bind", "| Affiliations | MIT |" in c2 and "| Date | 2024 |" in c2)
+    check("#1 blockquote survives", "> keep this blockquote" in c2)
+    check("#1 user TL;DR survives", "user summary" in c2)
+    check("#1 resources actually refreshed", "second.example" in c2 and "first.example" not in c2)
+    check("#1 idempotent shape (sentinels, single block)", c2.count("prism:resources:start") == 1)
+
+    # 🟠 #2 REGRESSION: an h3 directly under Resources must still refresh
+    h3 = Path(tmp) / "H3.md"
+    h3.write_text("# Paper Note: H3\n\n## Resources\n\n- a\n\n### Subsection\n\nbody\n")
+    ph.inject_resources_block(str(h3), "H3", arxiv_url="H3URL", cfg=cfg)
+    hc = h3.read_text()
+    check("#2 h3-after-resources refreshes", "H3URL" in hc and "### Subsection" in hc and "body" in hc)
+
+    # 🔒 #3: a method_name with traversal is sanitized (no file escapes tmp)
+    ph.inject_resources_block(str(Path(tmp) / "trav.md"), "../../evil", arxiv_url="T", cfg=cfg)
+    check("#3 traversal note didn't escape", not (Path(tmp).parent / "evil.md").exists()
+          and not (Path(tmp).parent.parent / "evil.md").exists())
 
 
 # ---------------------------------------------------------------------------
@@ -416,6 +448,142 @@ def test_discovery(tmp):
 
 
 # ---------------------------------------------------------------------------
+def test_review_fixes(tmp):
+    print("review fixes (security / validation / version)")
+    import prism_refs as pr
+
+    # #3 safe_name
+    check("#3 safe_name strips traversal", pc.safe_name("../../evil") == "evil")
+    check("#3 safe_name strips slashes", "/" not in pc.safe_name("a/b/c"))
+    check("#3 safe_name keeps good names", pc.safe_name("ViT-S") == "ViT-S" and pc.safe_name("S4++") == "S4++")
+    check("#3 safe_name empty→untitled", pc.safe_name("..") == "untitled")
+
+    # #4 figure-url allowlist (pure, no network)
+    check("#4 allow arxiv https", ph._is_allowed_fig_url("https://arxiv.org/html/2312.00752/x1.png"))
+    check("#4 allow arxiv subdomain", ph._is_allowed_fig_url("https://export.arxiv.org/x.png"))
+    check("#4 block file://", not ph._is_allowed_fig_url("file:///etc/passwd.png"))
+    check("#4 block off-host", not ph._is_allowed_fig_url("http://169.254.169.254/x.png"))
+    check("#4 block protocol-relative", not ph._is_allowed_fig_url("//evil.com/x.png"))
+    # download_figures must skip malicious srcs without fetching
+    figs = [{"src": "file:///etc/passwd.png", "caption": ""},
+            {"src": "http://169.254.169.254/x.png", "caption": ""}]
+    got = ph.download_figures("2312.00752", figs, str(Path(tmp) / "figs"))
+    check("#4 malicious srcs blocked", all(g["ok"] is False and g["reason"] == "blocked_url" for g in got))
+
+    # #15 arxiv id validation
+    check("#15 valid new id", ph._valid_arxiv_id("2312.00752v2"))
+    check("#15 valid old id", ph._valid_arxiv_id("cs/0501001"))
+    check("#15 reject traversal id", not ph._valid_arxiv_id("../../x"))
+    check("#15 reject userinfo id", not ph._valid_arxiv_id("@evil.com/x"))
+
+    # #8 old-style arxiv regex no longer matches arbitrary word/7digits
+    ids = pr.extract_arxiv_ids("see data-set/1234567 and path/0000001 and cs/0501001")
+    check("#8 bogus archive rejected", "data-set/1234567" not in ids and "path/0000001" not in ids)
+    check("#8 real archive kept", "cs/0501001" in ids)
+
+    # #12 _mini_yaml: '#' inside a quoted value is preserved
+    check("#12 quoted hash kept", ph._strip_inline_comment('title: "a # b"  # real') == 'title: "a # b"  ')
+    mm = ph._mini_yaml('papers:\n  - id: x\n    title: "has # hash"\n    arxiv: "1"\n')
+    check("#12 mini-yaml keeps hash", mm["papers"][0]["title"] == "has # hash")
+
+    # #6 queue validation raises on bad input
+    def _q(body):
+        f = Path(tmp) / "qv.yaml"; f.write_text(body); return f
+    for label, body in [
+        ("bad notes_strategy", "notes_strategy: nope\npapers:\n  - id: a\n    arxiv: \"1\"\n"),
+        ("parallel out of range", "parallel: 99\npapers:\n  - id: a\n    arxiv: \"1\"\n"),
+        ("path not pdf", "papers:\n  - id: a\n    path: /x/y.txt\n"),
+        ("method has space", "papers:\n  - id: a\n    arxiv: \"1\"\n    method_name: My Method\n"),
+    ]:
+        try:
+            ph.parse_paper_queue(str(_q(body)))
+            check(f"#6 reject {label}", False, "no error")
+        except ValueError:
+            check(f"#6 reject {label}", True)
+    # #6 empty/comment-only file → no crash, empty queue
+    check("#6 empty papers ok", ph.parse_paper_queue(str(_q("papers:\n")))["papers"] == [])
+    check("#6 comment-only ok", ph.parse_paper_queue(str(_q("# just a comment\n")))["papers"] == [])
+
+    # #7 skip + defaults
+    q = ph.parse_paper_queue(str(_q(
+        'default_priority: P3\npapers:\n'
+        '  - id: a\n    arxiv: "1"\n'
+        '  - id: b\n    arxiv: "2"\n    skip: true\n')))
+    check("#7 skip drops paper", [p["id"] for p in q["papers"]] == ["a"])
+    check("#7 default_priority applied", q["papers"][0]["priority"] == "P3")
+
+    # #11 schema_version: an old/missing-version state file is reset
+    import prism_state as ps
+    cfg = pc.load_config(path="/nonexistent"); cfg["vault_path"] = tmp; cfg["notes_folder"] = "p"
+    sp = ps.state_path("VerProj", cfg); sp.parent.mkdir(parents=True, exist_ok=True)
+    sp.write_text(json.dumps({"project": "VerProj", "papers": {"Old": {"status": "done"}}}))  # no schema_version
+    st = ps.load_state("VerProj", cfg)
+    check("#11 old-schema state reset", st["papers"] == {} and st["schema_version"] == pc.SCHEMA_VERSION)
+    ps.update_paper("VerProj", "X", cfg, status="done")
+    check("#11 new state stamped", json.loads(sp.read_text())["schema_version"] == pc.SCHEMA_VERSION)
+
+
+def test_zotero(tmp):
+    print("zotero (synthetic sqlite)")
+    import sqlite3
+    import zotero as zt
+    db = Path(tmp) / "zotero.sqlite"
+    storage = Path(tmp) / "storage"
+    (storage / "ATTACHKEY").mkdir(parents=True)
+    (storage / "ATTACHKEY" / "mamba.pdf").write_bytes(b"%PDF-1.4")
+    con = sqlite3.connect(db)
+    con.executescript(
+        """
+        CREATE TABLE collections(collectionID INT, collectionName TEXT, parentCollectionID INT);
+        CREATE TABLE collectionItems(collectionID INT, itemID INT);
+        CREATE TABLE items(itemID INT, key TEXT, itemTypeID INT);
+        CREATE TABLE itemData(itemID INT, fieldID INT, valueID INT);
+        CREATE TABLE itemDataValues(valueID INT, value TEXT);
+        CREATE TABLE fields(fieldID INT, fieldName TEXT);
+        CREATE TABLE itemAttachments(itemID INT, parentItemID INT, contentType TEXT, path TEXT);
+        INSERT INTO collections VALUES (1,'CIL',NULL),(2,'Sub',1);
+        INSERT INTO fields VALUES (1,'title'),(2,'date');
+        INSERT INTO items VALUES (10,'PAPERKEY',2),(11,'ATTACHKEY',14);
+        INSERT INTO itemData VALUES (10,1,100),(10,2,101);
+        INSERT INTO itemDataValues VALUES (100,'Mamba: Linear-Time'),(101,'2023-12-01');
+        INSERT INTO collectionItems VALUES (1,10);
+        INSERT INTO itemAttachments VALUES (11,10,'application/pdf','storage:mamba.pdf');
+        """
+    )
+    con.commit(); con.close()
+
+    cfg_file = Path(tmp) / "zcfg.json"
+    cfg_file.write_text(json.dumps({"zotero_db": str(db), "zotero_storage": str(storage)}))
+    os.environ["PRISM_CONFIG"] = str(cfg_file)
+    try:
+        cols = {c["name"]: c for c in zt.list_collections()}
+        check("zotero list_collections", "CIL" in cols and cols["CIL"]["count"] == 1)
+        papers = zt.papers_in_collection(1)
+        check("zotero papers_in_collection", len(papers) == 1 and papers[0]["title"].startswith("Mamba"))
+        check("zotero excludes attachments (itemTypeID 14)", all(p["item_id"] != 11 for p in papers))
+        check("zotero pdf_path resolves", zt.pdf_path(10) == str(storage / "ATTACHKEY" / "mamba.pdf"))
+        check("zotero search", zt.search("Mamba")[0]["item_id"] == 10)
+        q = zt.zotero_collection_to_queue(1, recursive=False, project="Z")
+        check("zotero→queue", len(q) == 1 and q[0]["zotero_item"] == 10 and q[0]["path"].endswith("mamba.pdf"))
+    finally:
+        del os.environ["PRISM_CONFIG"]
+
+
+def test_marp_missing(tmp):
+    print("marp missing-binary branch")
+    import shutil as _sh
+    real = _sh.which
+    _sh.which = lambda name: None  # simulate marp absent
+    try:
+        ph.marp_render(str(Path(tmp) / "x.md"), str(tmp))
+        check("marp missing raises", False, "no error")
+    except RuntimeError as e:
+        check("marp missing raises", "marp not found" in str(e))
+    finally:
+        _sh.which = real
+
+
+# ---------------------------------------------------------------------------
 def main():
     with tempfile.TemporaryDirectory() as tmp:
         test_config_defaults()
@@ -430,6 +598,9 @@ def main():
         test_state(tmp)
         test_refs(tmp)
         test_discovery(tmp)
+        test_review_fixes(tmp)
+        test_zotero(tmp)
+        test_marp_missing(tmp)
 
     print()
     if _failures:

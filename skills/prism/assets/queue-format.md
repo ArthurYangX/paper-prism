@@ -55,7 +55,7 @@ Precedence: `path > arxiv > zotero`. Use exactly one per paper.
 |------|-----------|---------|
 | `full` (default) | Phase 1-5, everything | main note + slide PDF/PPTX + copied PDF + MOC |
 | `deck-only` | skip writing the main note, render the deck only | slide PDF/PPTX + copied PDF + MOC (no main note) |
-| `analysis-only` | only Phase 2 Agent A | `/tmp/{method}_qa.md` + `note_body.md` (not written to vault) |
+| `analysis-only` | only Phase 2 Agent A | `{deck_dir}/.cache/{method}_qa.md` + `_note_body.md` (durable cache, not written to vault) |
 
 ## Status emoji legend
 
@@ -189,11 +189,19 @@ papers:
 
 Skip logic: check whether `{NOTES_PATH}/{project}/_slides/{method}/{method}.slides.pdf` exists and is larger than 50KB.
 
-## Validation (run at parse time)
+## Validation (enforced by `parse_paper_queue`, raises `ValueError`)
 
-- [ ] `project` field exists and is ASCII
-- [ ] each paper has exactly one of `path` / `arxiv` / `zotero`
-- [ ] `path` exists and `.endswith('.pdf')`
-- [ ] `method_name`, if provided, is ASCII with no spaces
-- [ ] `parallel` is between 1 and 8
-- [ ] `notes_strategy` is one of {full, deck-only, analysis-only}
+These are checked in code at parse time — a bad queue fails fast with the
+offending paper index, not deep in the pipeline:
+
+- `project` is ASCII (defaults to `Research` if omitted)
+- `parallel` is an int in 1..8
+- `notes_strategy` is one of {full, deck-only, analysis-only}
+- each paper has exactly one of `path` / `arxiv` / `zotero`
+- `path` ends in `.pdf` (existence is checked later, when the paper is processed)
+- `method_name`, if provided, is filesystem-safe with no spaces
+
+Applied automatically: `skip: true` papers are dropped from the returned queue;
+`default_priority` / `default_status` fill any paper that doesn't set its own
+`priority` / `status`. If a reference/discovery source dropped entries (no usable
+id or title), the count is reported so "40 in → 31 out" is never silent.

@@ -115,6 +115,11 @@ If a discovery skill is present, the main agent may invoke it and pipe its outpu
 if not, the user runs discovery themselves and hands prism the JSON/`.bib`. Either
 way prism stays the deep-processing backend.
 
+**Always surface `_dropped`.** `refs_to_queue` / `discovery_to_queue` return a
+`_dropped` count for entries with no usable id or title. When it's > 0, tell the
+user (e.g. "40 references → 31 queued, 9 dropped (no arXiv id or title)") — never
+let papers vanish silently.
+
 Single-paper reference forms (Mode 1): local `*.pdf`, `arxiv:2312.00752`, an
 arXiv URL, `Zotero: Mamba` (title search), or a Zotero item id.
 

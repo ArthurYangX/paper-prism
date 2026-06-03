@@ -5,7 +5,7 @@
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 ![Claude Code skill](https://img.shields.io/badge/Claude%20Code-skill-8A2BE2)
 ![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)
-![tests 90 passing](https://img.shields.io/badge/tests-90%20passing-brightgreen)
+![tests 132 passing](https://img.shields.io/badge/tests-132%20passing-brightgreen)
 
 [English](README.md) · **简体中文**
 

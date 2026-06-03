@@ -40,7 +40,47 @@ from typing import Any
 
 # prism_config sits next to this file
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from prism_config import load_config, get_labels  # noqa: E402
+from prism_config import load_config, get_labels, safe_name, __version__  # noqa: E402
+
+# Sentinels that delimit the auto-managed resources block inside a paper note.
+# Refreshing replaces strictly between these — never touching user prose.
+_RES_START = "<!-- prism:resources:start -->"
+_RES_END = "<!-- prism:resources:end -->"
+
+# arXiv id shape (new YYMM.NNNNN[vN] + old archive/7digits) — validated before
+# it is ever interpolated into a URL.
+_ARXIV_ID_RE = re.compile(
+    r"^(?:\d{4}\.\d{4,5}(?:v\d+)?|[a-z][a-z\-]*(?:\.[A-Z]{2})?/\d{7})$")
+
+
+def _valid_arxiv_id(arxiv_id: str) -> bool:
+    return bool(_ARXIV_ID_RE.match(str(arxiv_id).strip()))
+
+
+def _is_allowed_fig_url(url: str) -> bool:
+    """Allow only http(s) on arxiv.org (or a subdomain). Blocks file:, ftp:,
+    data:, protocol-relative `//host`, and any off-host absolute URL — so a
+    malicious figure `src` in fetched HTML can't trigger SSRF or read local
+    files via the default urllib opener's File/FTP handlers."""
+    from urllib.parse import urlparse
+    u = urlparse(url)
+    if u.scheme not in ("http", "https"):
+        return False
+    host = (u.hostname or "").lower()
+    return host == "arxiv.org" or host.endswith(".arxiv.org")
+
+
+def _http_get(url: str, timeout: int = 30, retries: int = 2) -> bytes:
+    """GET bytes with a small retry for transient arXiv hiccups."""
+    req = urllib.request.Request(url, headers={"User-Agent": f"prism/{__version__}"})
+    last: Exception | None = None
+    for _ in range(retries + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                return r.read()
+        except Exception as e:  # noqa: BLE001
+            last = e
+    raise last  # type: ignore[misc]
 
 
 # ===========================================================================
@@ -67,7 +107,7 @@ def render_pdf_pages(
     subprocess.run(
         ["pdftoppm", "-png", "-r", str(dpi),
          pdf, str(full_prefix), "-f", str(first), "-l", str(last)],
-        check=True,
+        check=True, timeout=180,
     )
     return sorted(str(p) for p in Path(out_dir).glob(f"{prefix}-*.png"))
 
@@ -95,10 +135,10 @@ def fetch_arxiv_html(arxiv_id: str, cache_path: str | None = None) -> str:
     """Download an arXiv HTML5 fulltext page (arxiv.org/html/{id}). Returns HTML."""
     if cache_path and os.path.exists(cache_path):
         return Path(cache_path).read_text()
+    if not _valid_arxiv_id(arxiv_id):
+        raise ValueError(f"refusing to fetch malformed arXiv id: {arxiv_id!r}")
     url = f"https://arxiv.org/html/{arxiv_id}"
-    req = urllib.request.Request(url, headers={"User-Agent": "prism/0.1"})
-    with urllib.request.urlopen(req, timeout=30) as r:
-        html = r.read().decode("utf-8", errors="replace")
+    html = _http_get(url).decode("utf-8", errors="replace")
     if cache_path:
         Path(cache_path).parent.mkdir(parents=True, exist_ok=True)
         Path(cache_path).write_text(html)
@@ -138,20 +178,30 @@ def download_figures(
     1:1 to printed Figure numbers).
     """
     Path(out_dir).mkdir(parents=True, exist_ok=True)
-    base = f"https://arxiv.org/html/{arxiv_id}/"
+    base = f"https://arxiv.org/html/{arxiv_id}/" if _valid_arxiv_id(arxiv_id) else ""
     annotated = []
     for i, fig in enumerate(figures, 1):
         src = fig["src"]
+        rec = dict(fig)
+        # SECURITY: reject any non-http(s) scheme up front (file://, ftp://,
+        # data://) so it can't be smuggled in as a "relative" src either.
+        if "://" in src and not src.startswith(("http://", "https://")):
+            rec.update(file=None, ok=False, reason="blocked_url")
+            annotated.append(rec)
+            continue
         # de-dup accidental repeated id segments e.g. 2312.00752v1/2312.00752v1/
-        url = src if src.startswith("http") else base + src.lstrip("/")
+        url = src if src.startswith("http") else (base + src.lstrip("/") if base else "")
         url = re.sub(r"/([^/]+)/\1/", r"/\1/", url)
         ext = os.path.splitext(src)[1] or ".png"
         dst = Path(out_dir) / f"{prefix}_{i:02d}{ext}"
-        rec = dict(fig)
+        # SECURITY: only fetch https on arxiv.org — a hostile absolute `src`
+        # (//evil, http://169.254.169.254) must never be fetched.
+        if not _is_allowed_fig_url(url):
+            rec.update(file=None, ok=False, reason="blocked_url")
+            annotated.append(rec)
+            continue
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": "prism/0.1"})
-            with urllib.request.urlopen(req, timeout=30) as r:
-                data = r.read()
+            data = _http_get(url)
             if len(data) >= min_bytes:
                 dst.write_bytes(data)
                 rec.update(file=str(dst), ok=True)
@@ -181,7 +231,7 @@ def marp_render(
         out = str(Path(out_dir) / f"{stem}.{fmt}")
         subprocess.run(
             ["marp", md, f"--{fmt}", "--allow-local-files", "-o", out],
-            check=True,
+            check=True, timeout=300,
         )
         results[fmt] = out
     return results
@@ -191,7 +241,11 @@ def marp_render(
 # 5. Three-piece binding
 # ===========================================================================
 def copy_paper_pdf(src_pdf: str, dst_dir: str, method_name: str) -> str:
-    """Copy the source PDF into the deck folder as {method}.pdf (idempotent)."""
+    """Copy the source PDF into the deck folder as {method}.pdf (idempotent).
+
+    method_name is sanitised so a paper-derived name can't escape dst_dir.
+    """
+    method_name = safe_name(method_name)
     Path(dst_dir).mkdir(parents=True, exist_ok=True)
     dst = Path(dst_dir) / f"{method_name}.pdf"
     if dst.exists() and dst.stat().st_size == Path(src_pdf).stat().st_size:
@@ -214,12 +268,16 @@ def inject_resources_block(
 ) -> None:
     """Insert or refresh the resources block at the top of a paper note.
 
-    Idempotent. If the note already has a resources block, it is replaced in
-    place up to (but not into) the next heading — never swallowing user prose.
-    If the note is missing and create_if_missing, a minimal stub is written.
+    The block is delimited by `<!-- prism:resources:start/end -->` sentinels, so a
+    refresh replaces *strictly between them* and can never swallow user prose
+    (e.g. a metadata table the user filled in below the links). Idempotent and
+    safe to re-run across a batch / after a crash. If the note is missing and
+    create_if_missing, a minimal stub is written.
     """
     cfg = cfg or load_config()
     L = get_labels(cfg)
+    method_name = safe_name(method_name)
+    project = safe_name(project) if project else ""
     sub = cfg["slides_subdir"]
     base = f"{sub}/{method_name}"
     heading = L["resources_heading"]
@@ -238,7 +296,8 @@ def inject_resources_block(
         lines.append(f"- {L['label_code']}: {github_url}")
     if project:
         lines.append(f"- {L['label_project']}: [[00 {project}]]")
-    block = "\n".join(lines) + "\n"
+    # sentinel-wrapped block (always ends with a newline)
+    wrapped = _RES_START + "\n" + "\n".join(lines) + "\n" + _RES_END + "\n"
 
     p = Path(note_path)
     title_line = f"# {L['note_title_prefix']}{title or method_name}"
@@ -250,7 +309,7 @@ def inject_resources_block(
         stub = (
             f'---\nmethod_name: "{method_name}"\ntitle: "{title}"\n---\n\n'
             f"{title_line}\n\n"
-            f"{block}\n"
+            f"{wrapped}\n"
             f"{L['tldr_heading']}\n\n> {L['todo']}\n\n"
             f"{L['contributions_heading']}\n\n- {L['todo']}\n"
         )
@@ -258,25 +317,36 @@ def inject_resources_block(
         return
 
     content = p.read_text()
-    if heading in content:
-        # Replace only up to the next ## / # heading; bail if there is none
-        # (protects a note that is *only* a resources block from being eaten).
-        after = content[content.index(heading) + len(heading):]
-        if not re.search(r"\n##? ", after):
-            return
+
+    # 1) Sentinels present -> replace strictly between them (always safe).
+    if _RES_START in content and _RES_END in content:
         new = re.sub(
-            re.escape(heading) + r"\n(?:.*?\n)*?(?=\n##? )",
-            block,
+            re.escape(_RES_START) + r".*?" + re.escape(_RES_END) + r"\n?",
+            wrapped,
             content,
             count=1,
             flags=re.DOTALL,
         )
+    # 2) Legacy block (heading + a contiguous bullet list, no sentinels) ->
+    #    replace ONLY the heading + that list, preserving anything after it
+    #    (blockquotes, the metadata table, etc.). Adds sentinels for next time.
+    elif heading in content and re.search(
+            re.escape(heading) + r"\n(?:[ \t]*\n)*(?:[-*] .*\n)+", content):
+        new = re.sub(
+            re.escape(heading) + r"\n(?:[ \t]*\n)*(?:[-*] .*\n)+",
+            wrapped,
+            content,
+            count=1,
+        )
+    # 3) No block yet -> insert after the title heading, else after frontmatter.
     else:
         title_re = rf"(^# {re.escape(L['note_title_prefix'])}.*?\n)"
-        new, n = re.subn(title_re, r"\1\n" + block + "\n", content, count=1, flags=re.MULTILINE)
-        if n == 0:  # no title heading -> insert after frontmatter
-            new = re.sub(r"(^---\n.*?\n---\n)", r"\1\n" + block + "\n", content,
-                         count=1, flags=re.DOTALL)
+        new, n = re.subn(title_re, r"\1\n" + wrapped + "\n", content, count=1, flags=re.MULTILINE)
+        if n == 0:  # no title heading -> after frontmatter, else prepend
+            new, n = re.subn(r"(^---\n.*?\n---\n)", r"\1\n" + wrapped + "\n", content,
+                             count=1, flags=re.DOTALL)
+            if n == 0:
+                new = wrapped + "\n" + content
     p.write_text(new)
 
 
@@ -341,6 +411,7 @@ def bootstrap_project(project: str, cfg: dict[str, Any] | None = None) -> str:
     """
     cfg = cfg or load_config()
     L = get_labels(cfg)
+    project = safe_name(project)
     notes = Path(cfg["vault_path"]).expanduser() / cfg["notes_folder"] / project
     notes.mkdir(parents=True, exist_ok=True)
     moc = notes / f"00 {project}.md"
@@ -440,26 +511,61 @@ def parse_paper_queue(yaml_path: str) -> dict:
         data = yaml.safe_load(text)
     except Exception:  # noqa: BLE001
         data = _mini_yaml(text)
+    if not isinstance(data, dict):     # empty / comment-only / non-mapping file
+        data = {}
     data.setdefault("project", "Research")
     data.setdefault("parallel", 4)
     data.setdefault("notes_strategy", "full")
-    data.setdefault("papers", [])
+    if not isinstance(data.get("papers"), list):   # `papers:` with null value
+        data["papers"] = []
+
+    # --- top-level validation (matches queue-format.md) ---
+    if not str(data["project"]).isascii():
+        raise ValueError(f"project must be ASCII, got {data['project']!r}")
+    if not isinstance(data["parallel"], int) or not (1 <= data["parallel"] <= 8):
+        raise ValueError(f"parallel must be an int in 1..8, got {data['parallel']!r}")
+    if data["notes_strategy"] not in ("full", "deck-only", "analysis-only"):
+        raise ValueError(
+            f"notes_strategy must be full|deck-only|analysis-only, got {data['notes_strategy']!r}")
+    default_priority = data.get("default_priority")
+    default_status = data.get("default_status")
+
     # Fields that must stay strings. YAML turns an unquoted `arxiv: 2410.00001`
     # into a float and loses precision, so coerce defensively (and tell users
     # to quote arXiv IDs in queue-format.md).
     _str_fields = ("id", "arxiv", "arxiv_id", "zotero", "method_name",
-                   "category", "relevance", "priority", "title", "notes_strategy")
+                   "category", "relevance", "priority", "title", "status")
+    kept: list[dict] = []
     for i, pp in enumerate(data["papers"]):
+        if not isinstance(pp, dict):
+            raise ValueError(f"paper #{i} must be a mapping, got {type(pp).__name__}")
         for k in _str_fields:
             if k in pp and pp[k] is not None and not isinstance(pp[k], str):
                 pp[k] = str(pp[k])
+        if pp.get("skip") in (True, "true", "True"):     # honour `skip:` (drop it)
+            continue
         srcs = [k for k in ("path", "arxiv", "zotero") if pp.get(k)]
         if len(srcs) != 1:
             raise ValueError(
                 f"paper #{i} ({pp.get('id','?')}): need exactly one of "
                 f"path/arxiv/zotero, got {srcs}")
         if pp.get("path"):
-            pp["path"] = str(Path(pp["path"]).expanduser())
+            path = str(Path(pp["path"]).expanduser())
+            if not path.lower().endswith(".pdf"):
+                raise ValueError(
+                    f"paper #{i} ({pp.get('id','?')}): path must end in .pdf, got {path}")
+            pp["path"] = path
+        mn = pp.get("method_name")
+        if mn and (mn != safe_name(mn) or " " in mn):
+            raise ValueError(
+                f"paper #{i} ({pp.get('id','?')}): method_name must be "
+                f"filesystem-safe with no spaces, got {mn!r}")
+        if default_priority and not pp.get("priority"):    # apply queue defaults
+            pp["priority"] = default_priority
+        if default_status and not pp.get("status"):
+            pp["status"] = default_status
+        kept.append(pp)
+    data["papers"] = kept
     return data
 
 
@@ -472,7 +578,7 @@ def _mini_yaml(text: str) -> dict:
     cur: dict | None = None
     in_papers = False
     for raw in text.splitlines():
-        line = raw.split("#", 1)[0].rstrip() if not raw.strip().startswith("#") else ""
+        line = "" if raw.lstrip().startswith("#") else _strip_inline_comment(raw).rstrip()
         if not line.strip():
             continue
         if re.match(r"^papers:\s*$", line):
@@ -493,6 +599,20 @@ def _mini_yaml(text: str) -> dict:
             cur[kv.group(1)] = _scalar(kv.group(2))
     out["papers"] = papers
     return out
+
+
+def _strip_inline_comment(line: str) -> str:
+    """Remove an inline `#` comment, but NOT a `#` inside a quoted value."""
+    quote: str | None = None
+    for j, ch in enumerate(line):
+        if quote:
+            if ch == quote:
+                quote = None
+        elif ch in "\"'":
+            quote = ch
+        elif ch == "#" and (j == 0 or line[j - 1] in " \t"):
+            return line[:j]
+    return line
 
 
 def _scalar(v: str) -> Any:

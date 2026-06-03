@@ -28,7 +28,7 @@ from typing import Any
 
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from prism_config import load_config, project_path  # noqa: E402
+from prism_config import load_config, project_path, SCHEMA_VERSION  # noqa: E402
 
 PHASES = ("analysis", "figures", "tables", "synth", "render", "bind")
 _DONE_MIN_PDF_BYTES = 50 * 1024  # a real deck is comfortably bigger than this
@@ -46,21 +46,31 @@ def state_path(project: str, cfg: dict[str, Any] | None = None) -> Path:
     return project_path(project, cfg) / ".prism_state.json"
 
 
+def _skeleton(project: str) -> dict:
+    return {"schema_version": SCHEMA_VERSION, "project": project,
+            "updated": None, "papers": {}}
+
+
 def load_state(project: str, cfg: dict[str, Any] | None = None) -> dict:
-    """Load the project state file, or a fresh skeleton if absent/corrupt."""
+    """Load the project state file, or a fresh skeleton if absent / corrupt /
+    written by an incompatible prism version (schema_version mismatch → reset)."""
     p = state_path(project, cfg)
     if p.is_file():
         try:
-            return json.loads(p.read_text())
+            data = json.loads(p.read_text())
+            if isinstance(data, dict) and data.get("schema_version") == SCHEMA_VERSION:
+                return data
+            # missing/old schema → don't trust it; start fresh (resume re-runs).
         except (json.JSONDecodeError, OSError):
             pass
-    return {"project": project, "updated": None, "papers": {}}
+    return _skeleton(project)
 
 
 def save_state(state: dict, project: str, cfg: dict[str, Any] | None = None) -> None:
     """Atomically write the state file (temp + os.replace)."""
     p = state_path(project, cfg)
     p.parent.mkdir(parents=True, exist_ok=True)
+    state["schema_version"] = SCHEMA_VERSION
     state["updated"] = _now()
     fd, tmp = tempfile.mkstemp(dir=str(p.parent), suffix=".tmp")
     try:

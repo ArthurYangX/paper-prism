@@ -41,7 +41,12 @@ from typing import Any
 #   new:  1409.0473  /  2312.00752v2   (YYMM.NNNNN, optional vN)
 #   old:  cs/0501001 /  math.GT/0309136 (archive(.subclass)?/7digits)
 _ARXIV_NEW = r"\d{4}\.\d{4,5}(?:v\d+)?"
-_ARXIV_OLD = r"[a-z\-]+(?:\.[A-Z]{2})?/\d{7}"
+# Old-style ids: restrict the archive to the real arXiv archive list so random
+# `word/1234567` tokens (file paths, dataset names) aren't taken as arXiv ids.
+_ARXIV_ARCHIVES = (
+    r"cs|math|physics|cond-mat|hep-th|hep-ph|hep-ex|hep-lat|gr-qc|quant-ph|"
+    r"astro-ph|nlin|nucl-th|nucl-ex|q-bio|q-fin|stat|eess|econ|math-ph|chao-dyn")
+_ARXIV_OLD = rf"(?:{_ARXIV_ARCHIVES})(?:\.[A-Z]{{2}})?/\d{{7}}"
 _ARXIV_ANY = rf"(?:{_ARXIV_NEW}|{_ARXIV_OLD})"
 _DOI = r"10\.\d{4,9}/[-._;()/:A-Za-z0-9]+"
 
@@ -200,8 +205,15 @@ def _clean_braces(s: str) -> str:
 # ---------------------------------------------------------------------------
 def references_text_from_pdf(pdf_path: str) -> str:
     """pdftotext the PDF and return the text after the last References heading."""
+    import shutil
+    if shutil.which("pdftotext") is None:
+        raise RuntimeError("pdftotext not found. Install poppler "
+                           "(brew install poppler / apt install poppler-utils).")
     out = subprocess.run(["pdftotext", "-q", str(Path(pdf_path).expanduser()), "-"],
-                         capture_output=True, text=True)
+                         capture_output=True, text=True, timeout=120)
+    if out.returncode != 0:
+        raise RuntimeError(f"pdftotext failed ({out.returncode}) on {pdf_path}: "
+                           f"{out.stderr.strip()[:200]}")
     return _slice_references(out.stdout)
 
 
