@@ -52,61 +52,35 @@ A single paper in roughly 8 minutes, or your whole Zotero collection overnight �
 
 ---
 
-## See it in action
+## Install
 
-Two public papers, refracted end-to-end into full paper-prism packages — main note · slide deck · figure/table screenshots · linked MOCs — live in [`examples/showcase/`](examples/showcase/run-attention/):
+```bash
+git clone https://github.com/ArthurYangX/paper-prism.git
+cd paper-prism
+./install.sh          # symlinks the skill into ~/.claude/skills/ and runs the dependency doctor
+cp skills/paper-prism/assets/config.example.json skills/paper-prism/assets/config.json
+# then edit config.json — at minimum set vault_path
+```
 
-| Paper | Note | Deck | Produced by |
-|-------|------|------|-------------|
-| **Transformer** — *Attention Is All You Need* | [Transformer.md](examples/showcase/run-attention/vault/papers/Showcase/Transformer.md) | 35 pages | coordinator-driven (serial) |
-| **Mamba** — *Selective State Spaces* | [Mamba.md](examples/showcase/run-attention/vault/papers/Showcase/Mamba.md) | 39 pages | a real parallel A/B/C subagent fan-out, reconciled by the coordinator |
+`install.sh` symlinks `skills/paper-prism/` into `~/.claude/skills/` so Claude Code discovers it (the slash command becomes `/paper-prism`), then runs a dependency doctor that checks for the tools below.
 
-<p align="center">
-  <img src="examples/showcase/run-attention/preview/02-architecture.png" width="49%" alt="Transformer deck — architecture page">
-  <img src="examples/showcase/run-attention/preview/mamba-03-downstream.png" width="49%" alt="Mamba deck — results page">
-</p>
+**Dependencies:**
 
-Both share one `Showcase` reading-queue MOC and the global Slide Library — index accumulation across papers, demonstrated. The rendered PDFs/PPTX are git-ignored to keep the repo light; regenerate each with one `marp` command (see the showcase [README](examples/showcase/run-attention/README.md)).
+| Tool | Why | Install |
+|---|---|---|
+| **Python 3.10+** with **Pillow** | table cropping (PIL) | `pip install Pillow` |
+| **Node** + **`@marp-team/marp-cli`** | render the deck to PDF + PPTX | `npm i -g @marp-team/marp-cli` |
+| **poppler** (`pdftoppm`) | render PDF pages to PNG for table screenshots | `brew install poppler` / `apt install poppler-utils` |
+| *optional* **PyYAML** | nicer YAML queue parsing (a zero-dep mini-parser is built in) | `pip install pyyaml` |
+| *optional* **Zotero** | the Zotero input modes (read-only) | local Zotero install |
 
----
-
-## Why paper-prism?
-
-The single-paper experience is nice. The reason paper-prism exists is what happens **at scale** — turning 100 papers into a knowledge base instead of 100 disconnected dumps.
-
-| At scale, the thing that bites you | What paper-prism does |
-|---|---|
-| All-Opus reading is slow and expensive per paper | **Parallel subagent fan-out** — analysis (Opus) + figures (Sonnet) + tables (Sonnet) run as three concurrent agents; ~8 min/paper, ~3× cheaper than all-Opus (50 papers ≈ Opus×50 + Sonnet×100). |
-| 100 papers naively → ~2000 half-defined `[[wikilinks]]` and a broken graph | **Concept budget** (default ≤8 new concepts/paper) + **alias dedup**, so `Mamba` / `Mamba SSM` / `Selective SSM` never become three files; extras downgrade to bold. |
-| A batch crashes at paper 60 of 100 and you've lost the work | **Checkpoint & resume (断点重连)** — a per-project state file + a per-paper durable cache mean a re-run skips finished papers *and* resumes a half-finished one from its missing phase (a crash at "render" never re-runs the Opus analysis). Bindings replace-in-place; failures are isolated and never block the next paper. |
-| Notes, slides, and the source PDF drift apart | **Three-piece binding (Plan C)** — main note + deck + the original PDF live as one self-contained unit, linked by a resources block, and indexed in both a project MOC and a global Slide Library. |
-| An AI that re-types result tables corrupts the numbers | **The table-screenshot iron rule** — every main-result and ablation table is embedded as a *screenshot of the original*, never re-drawn as markdown. Re-typing corrupts numbers, bold, arrows, and merged cells. |
-| Filenames like `de2021continual.pdf` get a garbage method name | **Method-name extraction** by confidence (Zotero title → "we propose X" → repeated acronym → ask), so batches name notes correctly instead of calling a paper `Continual`. |
-
-Everything above is implemented in `skills/paper-prism/SKILL.md` and the Python helpers — not aspirational.
-
----
-
-## The twelve-question framework
-
-paper-prism never jumps straight to output. Before any note or deck, it answers **twelve questions** about the paper — and every answer carries a **"how I'd know I understood it" self-check**. That self-check is the whole point: it is what turns a summary into something *you can re-explain unaided*, rather than a fluent paraphrase of the abstract.
-
-| # | Question | # | Question |
-|---|---|---|---|
-| Q1 | What problem? | Q7 | How validated? (data · baselines · metrics · ablations) |
-| Q2 | Gap in prior work? | Q8 | Where do the gains come from? |
-| Q3 | Core insight ⭐ (intuition, not a module list) | Q9 | Limitations (≥2; unstated ones marked 【inferred】) |
-| Q4 | Pipeline (input → modules → output) | Q10 | Transferable? |
-| Q5 | Module roles (what breaks without each) | Q11 | How to improve? |
-| Q6 | What do the equations *do*? | Q12 | Explain it in 2–3 sentences |
-
-In batch mode paper-prism runs a condensed five-question pass (Q1 + Q3 + Q4-brief + Q9 + Q12) per paper and expands on request — but it **never skips** the framework. Full template, self-check wording, and the passage-intent follow-up mode live in `skills/paper-prism/references/twelve-questions.md`.
+The Python helpers are **stdlib-first**: paper-prism imports and runs its config and binding logic with no third-party packages at all. Pillow, Node/Marp, and poppler are only invoked when you actually render a deck.
 
 ---
 
 ## Quick start
 
-These are things you **say to Claude Code** in a session where the paper-prism skill is installed — not shell commands. paper-prism auto-triggers when your message matches its description (the phrases below); you can also invoke it explicitly with **`/paper-prism`**.
+Once installed, these are things you **say to Claude Code** — not shell commands. paper-prism auto-triggers when your message matches its description (the phrases below); you can also invoke it explicitly with **`/paper-prism`**.
 
 **Single paper → note (default), or the full deck package:**
 
@@ -178,29 +152,44 @@ python3 skills/paper-prism/assets/prism_refs.py discovery digest.json --top 5   
 
 ---
 
-## Installation
+## See it in action
 
-```bash
-git clone https://github.com/ArthurYangX/paper-prism.git
-cd paper-prism
-./install.sh          # symlinks the skill into ~/.claude/skills/ and runs the dependency doctor
-cp skills/paper-prism/assets/config.example.json skills/paper-prism/assets/config.json
-# then edit config.json — at minimum set vault_path
+Two public papers, refracted end-to-end into full paper-prism packages — main note · slide deck · figure/table screenshots · linked MOCs — live in [`examples/showcase/`](examples/showcase/run-attention/):
+
+| Paper | Note | Deck | Produced by |
+|-------|------|------|-------------|
+| **Transformer** — *Attention Is All You Need* | [Transformer.md](examples/showcase/run-attention/vault/papers/Showcase/Transformer.md) | 35 pages | coordinator-driven (serial) |
+| **Mamba** — *Selective State Spaces* | [Mamba.md](examples/showcase/run-attention/vault/papers/Showcase/Mamba.md) | 39 pages | a real parallel A/B/C subagent fan-out, reconciled by the coordinator |
+
+<p align="center">
+  <img src="examples/showcase/run-attention/preview/02-architecture.png" width="49%" alt="Transformer deck — architecture page">
+  <img src="examples/showcase/run-attention/preview/mamba-03-downstream.png" width="49%" alt="Mamba deck — results page">
+</p>
+
+Both share one `Showcase` reading-queue MOC and the global Slide Library — index accumulation across papers, demonstrated. The rendered PDFs/PPTX are git-ignored to keep the repo light; regenerate each with one `marp` command (see the showcase [README](examples/showcase/run-attention/README.md)).
+
+---
+
+> **That's the whole loop — install, say what you want, get a bound note + deck.** Everything below is the *why* and *how*: the pipeline internals, full configuration, and the design rationale. Skim it when you want depth; you don't need it to start.
+
+---
+
+## How it works
+
+The deck pipeline (`make a deck`) runs five phases — **parallel by default**:
+
+```text
+Phase 1 · Setup            resolve config, method-name, arxiv_id, paths; mkdir deck folder   (serial, <10s)
+Phase 2 · 3-way fan-out ⚡  Agent A (Opus): twelve-Q + note body
+                           Agent B (Sonnet): arXiv HTML → download → verify figures
+                           Agent C (Sonnet): pdftoppm → PIL-crop tables
+Phase 3 · Synthesize       fill the slide template + the note template from the 3 artifacts   (serial)
+Phase 4 · Render + bind ⚡  marp → PDF + PPTX · copy source PDF in · resources block ·
+                           Slide Library row · project MOC row                                (parallel)
+Phase 5 · Report           verify 5 artifacts + MOC rows · clean /tmp · print paths
 ```
 
-`install.sh` symlinks `skills/paper-prism/` into `~/.claude/skills/` so Claude Code discovers it, then runs a dependency doctor that checks for the tools below.
-
-**Dependencies:**
-
-| Tool | Why | Install |
-|---|---|---|
-| **Python 3.10+** with **Pillow** | table cropping (PIL) | `pip install Pillow` |
-| **Node** + **`@marp-team/marp-cli`** | render the deck to PDF + PPTX | `npm i -g @marp-team/marp-cli` |
-| **poppler** (`pdftoppm`) | render PDF pages to PNG for table screenshots | `brew install poppler` / `apt install poppler-utils` |
-| *optional* **PyYAML** | nicer YAML queue parsing (a zero-dep mini-parser is built in) | `pip install pyyaml` |
-| *optional* **Zotero** | the Zotero input modes (read-only) | local Zotero install |
-
-The Python helpers are **stdlib-first**: paper-prism imports and runs its config and binding logic with no third-party packages at all. Pillow, Node/Marp, and poppler are only invoked when you actually render a deck.
+The main agent acts as a coordinator: it fans work out to the three subagents (Phase 2), then reconciles their output and assembles the note + deck (Phase 3) — `main → subagents → main`. Batches (folder / Zotero / YAML) wrap this in a `/loop` master prompt: scan → dedup against existing artifacts → each iteration spawns `parallel` paper-coordinators → stop when the queue empties. Failures go to an error log and **never block** the next paper. See `docs/architecture.md` for the full design.
 
 ---
 
@@ -235,25 +224,6 @@ python3 skills/paper-prism/assets/prism_config.py   # prints the resolved config
 
 ---
 
-## How it works
-
-The deck pipeline (`make a deck`) runs five phases — **parallel by default**:
-
-```text
-Phase 1 · Setup            resolve config, method-name, arxiv_id, paths; mkdir deck folder   (serial, <10s)
-Phase 2 · 3-way fan-out ⚡  Agent A (Opus): twelve-Q + note body
-                           Agent B (Sonnet): arXiv HTML → download → verify figures
-                           Agent C (Sonnet): pdftoppm → PIL-crop tables
-Phase 3 · Synthesize       fill the slide template + the note template from the 3 artifacts   (serial)
-Phase 4 · Render + bind ⚡  marp → PDF + PPTX · copy source PDF in · resources block ·
-                           Slide Library row · project MOC row                                (parallel)
-Phase 5 · Report           verify 5 artifacts + MOC rows · clean /tmp · print paths
-```
-
-Batches (folder / Zotero / YAML) wrap this in a `/loop` master prompt: scan → dedup against existing artifacts → each iteration spawns `parallel` paper-coordinators → stop when the queue empties. Failures go to an error log and **never block** the next paper. See `docs/architecture.md` for the full design.
-
----
-
 ## Output layout
 
 **Plan C — three-piece binding.** Mode A (vault, the default): each paper is a self-contained unit, plus a global index.
@@ -273,6 +243,40 @@ Batches (folder / Zotero / YAML) wrap this in a `/loop` master prompt: scan → 
 Mode B (`local` / `next to the PDF` / `don't put it in Obsidian`): everything lands in `{pdf_dir}/_slides/{method}/` with no PDF copy, no note binding, and no MOC update.
 
 In Obsidian, the deck PDF and the source PDF embed inline at the top of the note (`![[...]]`); the `.slides.md` previews with the Marp / Advanced-Slides plugin; the `.pptx` opens in Keynote/PowerPoint.
+
+---
+
+## Why paper-prism?
+
+The single-paper experience is nice. The reason paper-prism exists is what happens **at scale** — turning 100 papers into a knowledge base instead of 100 disconnected dumps.
+
+| At scale, the thing that bites you | What paper-prism does |
+|---|---|
+| All-Opus reading is slow and expensive per paper | **Parallel subagent fan-out** — analysis (Opus) + figures (Sonnet) + tables (Sonnet) run as three concurrent agents; ~8 min/paper, ~3× cheaper than all-Opus (50 papers ≈ Opus×50 + Sonnet×100). |
+| 100 papers naively → ~2000 half-defined `[[wikilinks]]` and a broken graph | **Concept budget** (default ≤8 new concepts/paper) + **alias dedup**, so `Mamba` / `Mamba SSM` / `Selective SSM` never become three files; extras downgrade to bold. |
+| A batch crashes at paper 60 of 100 and you've lost the work | **Checkpoint & resume (断点重连)** — a per-project state file + a per-paper durable cache mean a re-run skips finished papers *and* resumes a half-finished one from its missing phase (a crash at "render" never re-runs the Opus analysis). Bindings replace-in-place; failures are isolated and never block the next paper. |
+| Notes, slides, and the source PDF drift apart | **Three-piece binding (Plan C)** — main note + deck + the original PDF live as one self-contained unit, linked by a resources block, and indexed in both a project MOC and a global Slide Library. |
+| An AI that re-types result tables corrupts the numbers | **The table-screenshot iron rule** — every main-result and ablation table is embedded as a *screenshot of the original*, never re-drawn as markdown. Re-typing corrupts numbers, bold, arrows, and merged cells. |
+| Filenames like `de2021continual.pdf` get a garbage method name | **Method-name extraction** by confidence (Zotero title → "we propose X" → repeated acronym → ask), so batches name notes correctly instead of calling a paper `Continual`. |
+
+Everything above is implemented in `skills/paper-prism/SKILL.md` and the Python helpers — not aspirational.
+
+---
+
+## The twelve-question framework
+
+paper-prism never jumps straight to output. Before any note or deck, it answers **twelve questions** about the paper — and every answer carries a **"how I'd know I understood it" self-check**. That self-check is the whole point: it is what turns a summary into something *you can re-explain unaided*, rather than a fluent paraphrase of the abstract.
+
+| # | Question | # | Question |
+|---|---|---|---|
+| Q1 | What problem? | Q7 | How validated? (data · baselines · metrics · ablations) |
+| Q2 | Gap in prior work? | Q8 | Where do the gains come from? |
+| Q3 | Core insight ⭐ (intuition, not a module list) | Q9 | Limitations (≥2; unstated ones marked 【inferred】) |
+| Q4 | Pipeline (input → modules → output) | Q10 | Transferable? |
+| Q5 | Module roles (what breaks without each) | Q11 | How to improve? |
+| Q6 | What do the equations *do*? | Q12 | Explain it in 2–3 sentences |
+
+In batch mode paper-prism runs a condensed five-question pass (Q1 + Q3 + Q4-brief + Q9 + Q12) per paper and expands on request — but it **never skips** the framework. Full template, self-check wording, and the passage-intent follow-up mode live in `skills/paper-prism/references/twelve-questions.md`.
 
 ---
 

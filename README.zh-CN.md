@@ -50,65 +50,37 @@
   _concepts/ ──────────────────────────── linked concept graph
 ```
 
-> 输入（7 种模式）→ 五阶段流水线（默认并行，Phase 2 三路 subagent 扇出）→ 每篇一个自洽的三件套产物 + vault 级索引。
-
 ---
 
-## 实际效果
+## 安装
 
-两篇公开论文，端到端折射成完整的 paper-prism 产物——主笔记 · 幻灯 deck · 图表截图 · 互联 MOC——都在 [`examples/showcase/`](examples/showcase/run-attention/)：
+```bash
+git clone https://github.com/ArthurYangX/paper-prism.git
+cd paper-prism
+./install.sh          # 把 skill 软链到 ~/.claude/skills/ 并运行依赖检查
+cp skills/paper-prism/assets/config.example.json skills/paper-prism/assets/config.json
+# 然后编辑 config.json——至少设置 vault_path
+```
 
-| 论文 | 笔记 | Deck | 产出方式 |
-|------|------|------|----------|
-| **Transformer** —— *Attention Is All You Need* | [Transformer.md](examples/showcase/run-attention/vault/papers/Showcase/Transformer.md) | 35 页 | coordinator 串行驱动 |
-| **Mamba** —— *Selective State Spaces* | [Mamba.md](examples/showcase/run-attention/vault/papers/Showcase/Mamba.md) | 39 页 | 真实的 A/B/C 并行 subagent 扇出，再由 coordinator 复核归并 |
+`install.sh` 把 `skills/paper-prism/` 软链进 `~/.claude/skills/` 以便 Claude Code 发现它（斜杠命令即 `/paper-prism`），然后运行一个依赖 doctor 检查下列工具。
 
-<p align="center">
-  <img src="examples/showcase/run-attention/preview/02-architecture.png" width="49%" alt="Transformer deck — 架构页">
-  <img src="examples/showcase/run-attention/preview/mamba-03-downstream.png" width="49%" alt="Mamba deck — 结果页">
-</p>
+**依赖：**
 
-两篇共享同一个 `Showcase` 阅读队列 MOC 和全局幻灯片库——跨论文的索引累积，已实证。渲染出的 PDF/PPTX 已 gitignore 以保持仓库轻量；用一条 `marp` 命令即可逐篇重生成（见 showcase 的 [README](examples/showcase/run-attention/README.md)）。
+| 工具 | 用途 | 安装 |
+|---|---|---|
+| **Python 3.10+** + **Pillow** | 裁表（PIL） | `pip install Pillow` |
+| **Node** + **`@marp-team/marp-cli`** | 把 deck 渲成 PDF + PPTX | `npm i -g @marp-team/marp-cli` |
+| **poppler**（`pdftoppm`） | 把 PDF 页渲成 PNG 以截表 | `brew install poppler` / `apt install poppler-utils` |
+| *可选* **PyYAML** | 更好的 YAML 队列解析（内置了零依赖的迷你解析器） | `pip install pyyaml` |
+| *可选* **Zotero** | Zotero 输入模式（只读） | 本地 Zotero |
 
----
-
-## 为什么是 paper-prism？
-
-单篇体验固然不错，但 paper-prism 存在的真正理由在于**规模化**——把 100 篇论文变成一个知识库，而不是 100 个互不相干的转储。
-
-| 规模化时真正咬人的痛点 | paper-prism 的做法 |
-|---|---|
-| 全程用 Opus 读，单篇又慢又贵 | **并行 subagent 扇出**——分析（Opus）+ 抽图（Sonnet）+ 抽表（Sonnet）三个 agent 并发；约 8 分钟/篇，比全 Opus 省约 3 倍（50 篇 ≈ Opus×50 + Sonnet×100）。 |
-| 100 篇朴素跑 → 约 2000 个半成品 `[[wikilink]]`、图谱崩坏 | **概念预算**（默认 ≤8 个新概念/篇）+ **别名去重**，让 `Mamba` / `Mamba SSM` / `Selective SSM` 不会变成三个文件；超出预算的降级为粗体。 |
-| 批量跑到第 60 篇崩了，前功尽弃 | **断点重连（Checkpoint & resume）**——项目级状态文件 + 每篇的持久化缓存，重跑时既跳过已完成的论文，*又*能从半成品论文缺失的那一阶段继续（在「渲染」阶段崩溃绝不会重跑 Opus 分析）。绑定操作原地替换；失败被隔离，绝不阻塞下一篇。 |
-| 笔记、幻灯、原始 PDF 各自漂移 | **三件套绑定（Plan C）**——主笔记 + 幻灯 + 原始 PDF 作为一个自洽单元同住一处，由资源块串联，并同时索引进项目 MOC 和全局幻灯片库。 |
-| AI 重打结果表会改坏数字 | **表格铁律——一律截原图**——每一张主结果表和消融表都嵌入*原文截图*，绝不用 markdown 重画。重打会破坏数字、加粗、箭头和合并单元格。 |
-| `de2021continual.pdf` 这种文件名得到垃圾方法名 | **方法名按置信度提取**（Zotero 标题 → "we propose X" → 反复出现的缩写 → 询问），让批量正确命名，而不是把论文叫成 `Continual`。 |
-
-以上全部已在 `skills/paper-prism/SKILL.md` 和 Python 辅助脚本中实现——不是画饼。
-
----
-
-## 十二问框架
-
-paper-prism 从不直接跳到产出。在任何笔记或幻灯之前，它先回答关于这篇论文的**十二个问题**——而且每个答案都带一条**「我怎么判断自己真的看懂了」的自检标准**。这条自检才是重点：它把「摘要」变成「你能脱稿复述的东西」，而不是对 abstract 的流畅改写。
-
-| # | 问题 | # | 问题 |
-|---|---|---|---|
-| Q1 | 解决什么问题？ | Q7 | 如何验证？（数据 · baseline · 指标 · 消融） |
-| Q2 | 现有方法的缺口？ | Q8 | 提升来自哪里？ |
-| Q3 | 核心 insight ⭐（直觉，不是模块清单） | Q9 | 局限（≥2；未明说的标【inferred】） |
-| Q4 | Pipeline（输入 → 模块 → 输出） | Q10 | 能否迁移？ |
-| Q5 | 各模块作用（去掉会怎样） | Q11 | 如何改进？ |
-| Q6 | 公式到底在*做什么*？ | Q12 | 用 2–3 句讲清 |
-
-批量模式下，paper-prism 对每篇先跑一个浓缩五问（Q1 + Q3 + Q4 简版 + Q9 + Q12），需要时再展开——但**绝不跳过**这个框架。完整模板、自检措辞、以及「段落意图」追问模式见 `skills/paper-prism/references/twelve-questions.md`。
+Python 辅助脚本**优先用标准库**：paper-prism 的配置与绑定逻辑无需任何第三方包即可导入运行。Pillow、Node/Marp、poppler 只在你真的渲染 deck 时才被调用。
 
 ---
 
 ## 快速上手
 
-下面这些是你在装好 paper-prism skill 的会话里**对 Claude Code 说的话**——不是 shell 命令。当你说的话匹配它的 description（下面这些短语）时，paper-prism 会**自动触发**；你也可以用 **`/paper-prism`** 显式调用。
+装好后，下面这些是你**对 Claude Code 说的话**——不是 shell 命令。当你说的话匹配它的 description（下面这些短语）时，paper-prism 会**自动触发**；你也可以用 **`/paper-prism`** 显式调用。
 
 **单篇 → 笔记（默认），或完整 deck 套件：**
 
@@ -176,29 +148,44 @@ python3 skills/paper-prism/assets/prism_refs.py discovery digest.json --top 5   
 
 ---
 
-## 安装
+## 实际效果
 
-```bash
-git clone https://github.com/ArthurYangX/paper-prism.git
-cd paper-prism
-./install.sh          # 把 skill 软链到 ~/.claude/skills/ 并运行依赖检查
-cp skills/paper-prism/assets/config.example.json skills/paper-prism/assets/config.json
-# 然后编辑 config.json——至少设置 vault_path
+两篇公开论文，端到端折射成完整的 paper-prism 产物——主笔记 · 幻灯 deck · 图表截图 · 互联 MOC——都在 [`examples/showcase/`](examples/showcase/run-attention/)：
+
+| 论文 | 笔记 | Deck | 产出方式 |
+|------|------|------|----------|
+| **Transformer** —— *Attention Is All You Need* | [Transformer.md](examples/showcase/run-attention/vault/papers/Showcase/Transformer.md) | 35 页 | coordinator 串行驱动 |
+| **Mamba** —— *Selective State Spaces* | [Mamba.md](examples/showcase/run-attention/vault/papers/Showcase/Mamba.md) | 39 页 | 真实的 A/B/C 并行 subagent 扇出，再由 coordinator 复核归并 |
+
+<p align="center">
+  <img src="examples/showcase/run-attention/preview/02-architecture.png" width="49%" alt="Transformer deck — 架构页">
+  <img src="examples/showcase/run-attention/preview/mamba-03-downstream.png" width="49%" alt="Mamba deck — 结果页">
+</p>
+
+两篇共享同一个 `Showcase` 阅读队列 MOC 和全局幻灯片库——跨论文的索引累积，已实证。渲染出的 PDF/PPTX 已 gitignore 以保持仓库轻量；用一条 `marp` 命令即可逐篇重生成（见 showcase 的 [README](examples/showcase/run-attention/README.md)）。
+
+---
+
+> **这就是完整闭环——装上、说出你想要的、拿到绑定好的笔记 + deck。** 下面是*为什么*和*怎么做*：流水线内部、完整配置、设计理念。想深入就翻；开始用不需要它们。
+
+---
+
+## 工作原理
+
+deck 流水线（`make a deck`）跑五个阶段——**默认并行**：
+
+```text
+阶段 1 · Setup            解析配置、方法名、arxiv_id、路径；建 deck 目录              （串行，<10s）
+阶段 2 · 三路扇出 ⚡        Agent A（Opus）：十二问 + 笔记正文
+                          Agent B（Sonnet）：arXiv HTML → 下载 → 校验图
+                          Agent C（Sonnet）：pdftoppm → PIL 裁表
+阶段 3 · Synthesize        用这 3 份产物填充幻灯模板 + 笔记模板                        （串行）
+阶段 4 · 渲染 + 绑定 ⚡     marp → PDF + PPTX · 拷入原 PDF · 资源块 ·
+                          幻灯片库行 · 项目 MOC 行                                    （并行）
+阶段 5 · 报告              校验 5 件产物 + MOC 行 · 清理 /tmp · 打印路径
 ```
 
-`install.sh` 把 `skills/paper-prism/` 软链进 `~/.claude/skills/` 以便 Claude Code 发现它，然后运行一个依赖 doctor 检查下列工具。
-
-**依赖：**
-
-| 工具 | 用途 | 安装 |
-|---|---|---|
-| **Python 3.10+** + **Pillow** | 裁表（PIL） | `pip install Pillow` |
-| **Node** + **`@marp-team/marp-cli`** | 把 deck 渲成 PDF + PPTX | `npm i -g @marp-team/marp-cli` |
-| **poppler**（`pdftoppm`） | 把 PDF 页渲成 PNG 以截表 | `brew install poppler` / `apt install poppler-utils` |
-| *可选* **PyYAML** | 更好的 YAML 队列解析（内置了零依赖的迷你解析器） | `pip install pyyaml` |
-| *可选* **Zotero** | Zotero 输入模式（只读） | 本地 Zotero |
-
-Python 辅助脚本**优先用标准库**：paper-prism 的配置与绑定逻辑无需任何第三方包即可导入运行。Pillow、Node/Marp、poppler 只在你真的渲染 deck 时才被调用。
+主 agent 充当 coordinator：先把活扇给三个 subagent（阶段 2），再复核它们的产出、组装笔记 + deck（阶段 3）——`main → subagents → main`。批量（文件夹 / Zotero / YAML）在外面套一个 `/loop` 主控 prompt：扫描 → 按已有产物去重 → 每轮派出 `parallel` 个 paper-coordinator → 队列空则停止。失败写入错误日志，**绝不阻塞**下一篇。完整设计见 `docs/architecture.md`。
 
 ---
 
@@ -233,25 +220,6 @@ python3 skills/paper-prism/assets/prism_config.py   # 打印解析后的配置 +
 
 ---
 
-## 工作原理
-
-deck 流水线（`make a deck`）跑五个阶段——**默认并行**：
-
-```text
-阶段 1 · Setup            解析配置、方法名、arxiv_id、路径；建 deck 目录              （串行，<10s）
-阶段 2 · 三路扇出 ⚡        Agent A（Opus）：十二问 + 笔记正文
-                          Agent B（Sonnet）：arXiv HTML → 下载 → 校验图
-                          Agent C（Sonnet）：pdftoppm → PIL 裁表
-阶段 3 · Synthesize        用这 3 份产物填充幻灯模板 + 笔记模板                        （串行）
-阶段 4 · 渲染 + 绑定 ⚡     marp → PDF + PPTX · 拷入原 PDF · 资源块 ·
-                          幻灯片库行 · 项目 MOC 行                                    （并行）
-阶段 5 · 报告              校验 5 件产物 + MOC 行 · 清理 /tmp · 打印路径
-```
-
-批量（文件夹 / Zotero / YAML）在外面套一个 `/loop` 主控 prompt：扫描 → 按已有产物去重 → 每轮派出 `parallel` 个 paper-coordinator → 队列空则停止。失败写入错误日志，**绝不阻塞**下一篇。完整设计见 `docs/architecture.md`。
-
----
-
 ## 产出布局
 
 **Plan C —— 三件套绑定。** 模式 A（vault，默认）：每篇论文是一个自洽单元，外加一个全局索引。
@@ -271,6 +239,40 @@ deck 流水线（`make a deck`）跑五个阶段——**默认并行**：
 模式 B（`local` / `next to the PDF` / `don't put it in Obsidian`）：所有东西落在 `{pdf_dir}/_slides/{method}/`，不拷 PDF、不绑定笔记、不更新 MOC。
 
 在 Obsidian 里，deck PDF 和原始 PDF 会在笔记顶部内联嵌入（`![[...]]`）；`.slides.md` 配 Marp / Advanced-Slides 插件可预览；`.pptx` 用 Keynote/PowerPoint 打开。
+
+---
+
+## 为什么是 paper-prism？
+
+单篇体验固然不错，但 paper-prism 存在的真正理由在于**规模化**——把 100 篇论文变成一个知识库，而不是 100 个互不相干的转储。
+
+| 规模化时真正咬人的痛点 | paper-prism 的做法 |
+|---|---|
+| 全程用 Opus 读，单篇又慢又贵 | **并行 subagent 扇出**——分析（Opus）+ 抽图（Sonnet）+ 抽表（Sonnet）三个 agent 并发；约 8 分钟/篇，比全 Opus 省约 3 倍（50 篇 ≈ Opus×50 + Sonnet×100）。 |
+| 100 篇朴素跑 → 约 2000 个半成品 `[[wikilink]]`、图谱崩坏 | **概念预算**（默认 ≤8 个新概念/篇）+ **别名去重**，让 `Mamba` / `Mamba SSM` / `Selective SSM` 不会变成三个文件；超出预算的降级为粗体。 |
+| 批量跑到第 60 篇崩了，前功尽弃 | **断点重连（Checkpoint & resume）**——项目级状态文件 + 每篇的持久化缓存，重跑时既跳过已完成的论文，*又*能从半成品论文缺失的那一阶段继续（在「渲染」阶段崩溃绝不会重跑 Opus 分析）。绑定操作原地替换；失败被隔离，绝不阻塞下一篇。 |
+| 笔记、幻灯、原始 PDF 各自漂移 | **三件套绑定（Plan C）**——主笔记 + 幻灯 + 原始 PDF 作为一个自洽单元同住一处，由资源块串联，并同时索引进项目 MOC 和全局幻灯片库。 |
+| AI 重打结果表会改坏数字 | **表格铁律——一律截原图**——每一张主结果表和消融表都嵌入*原文截图*，绝不用 markdown 重画。重打会破坏数字、加粗、箭头和合并单元格。 |
+| `de2021continual.pdf` 这种文件名得到垃圾方法名 | **方法名按置信度提取**（Zotero 标题 → "we propose X" → 反复出现的缩写 → 询问），让批量正确命名，而不是把论文叫成 `Continual`。 |
+
+以上全部已在 `skills/paper-prism/SKILL.md` 和 Python 辅助脚本中实现——不是画饼。
+
+---
+
+## 十二问框架
+
+paper-prism 从不直接跳到产出。在任何笔记或幻灯之前，它先回答关于这篇论文的**十二个问题**——而且每个答案都带一条**「我怎么判断自己真的看懂了」的自检标准**。这条自检才是重点：它把「摘要」变成「你能脱稿复述的东西」，而不是对 abstract 的流畅改写。
+
+| # | 问题 | # | 问题 |
+|---|---|---|---|
+| Q1 | 解决什么问题？ | Q7 | 如何验证？（数据 · baseline · 指标 · 消融） |
+| Q2 | 现有方法的缺口？ | Q8 | 提升来自哪里？ |
+| Q3 | 核心 insight ⭐（直觉，不是模块清单） | Q9 | 局限（≥2；未明说的标【inferred】） |
+| Q4 | Pipeline（输入 → 模块 → 输出） | Q10 | 能否迁移？ |
+| Q5 | 各模块作用（去掉会怎样） | Q11 | 如何改进？ |
+| Q6 | 公式到底在*做什么*？ | Q12 | 用 2–3 句讲清 |
+
+批量模式下，paper-prism 对每篇先跑一个浓缩五问（Q1 + Q3 + Q4 简版 + Q9 + Q12），需要时再展开——但**绝不跳过**这个框架。完整模板、自检措辞、以及「段落意图」追问模式见 `skills/paper-prism/references/twelve-questions.md`。
 
 ---
 
