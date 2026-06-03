@@ -13,7 +13,7 @@ description: |
   "make slides", "make a PPT", "batch these papers", "process my Zotero collection".
   Triggers (ZH): "读一下", "帮我读", "分析这篇", "做成slide", "出PPT", "生成幻灯片",
   "批量处理", "读一下 Zotero 里的 XXX".
-allowed-tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
+allowed-tools: Agent, Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---
 
 # paper-prism — paper → notes + slides + concept graph

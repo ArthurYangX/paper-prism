@@ -276,7 +276,7 @@ def find_item_key(title: str, collection_id: int | None = None) -> str | None:
     conn = _connect()
     try:
         q = (
-            "SELECT i.key, idv.value FROM items i "
+            "SELECT i.key, i.itemID, idv.value FROM items i "
             "JOIN itemData id ON i.itemID = id.itemID "
             "JOIN itemDataValues idv ON id.valueID = idv.valueID "
             "JOIN fields f ON id.fieldID = f.fieldID "
@@ -290,10 +290,21 @@ def find_item_key(title: str, collection_id: int | None = None) -> str | None:
             ph = ",".join("?" * len(ids))
             q += f" AND i.itemID IN (SELECT itemID FROM collectionItems WHERE collectionID IN ({ph}))"
             params = ids
-        for key, t in conn.execute(q, params).fetchall():
-            if _norm(t) == target:
-                return key
-        return None
+        matches = [(k, iid) for k, iid, t in conn.execute(q, params).fetchall()
+                   if _norm(t) == target]
+        if not matches:
+            return None
+        # Duplicate copies are common; prefer the one that actually has a PDF
+        # attachment (most likely the copy that also carries the annotations) —
+        # per SKILL.md's "prefer the copy that has a PDF attachment".
+        for k, iid in matches:
+            if conn.execute(
+                "SELECT 1 FROM itemAttachments "
+                "WHERE parentItemID = ? AND contentType = 'application/pdf' LIMIT 1",
+                (iid,),
+            ).fetchone():
+                return k
+        return matches[0][0]
     finally:
         conn.close()
 
@@ -301,6 +312,20 @@ def find_item_key(title: str, collection_id: int | None = None) -> str | None:
 # ---------------------------------------------------------------------------
 # Queue bridge
 # ---------------------------------------------------------------------------
+def _arxiv_from_item(item_id: int) -> str | None:
+    """Best-effort arXiv id from a Zotero item's url / extra / archive fields.
+
+    Used when a collection item has no attached PDF, so the queue can still carry an
+    explicit `arxiv:` source instead of an unusable `path: None`.
+    """
+    fields = item_info(item_id)["fields"]
+    blob = " ".join(str(fields.get(k, "")) for k in
+                    ("url", "extra", "archiveID", "archive", "archiveLocation", "DOI"))
+    m = (re.search(r"arxiv\.org/(?:abs|pdf)/(\d{4}\.\d{4,5})", blob, re.I)
+         or re.search(r"arxiv:\s*(\d{4}\.\d{4,5})", blob, re.I))
+    return m.group(1) if m else None
+
+
 def zotero_collection_to_queue(
     collection: str | int,
     recursive: bool = True,
@@ -320,14 +345,20 @@ def zotero_collection_to_queue(
         cid = collection
     out = []
     for paper in papers_in_collection(cid, recursive=recursive):
-        pdf = pdf_path(paper["item_id"])
-        out.append({
-            "id": f"zotero-{paper['item_id']}",
-            "path": pdf,                       # may be None -> skill falls back to arxiv
-            "zotero_item": paper["item_id"],
-            "title": paper["title"],
-            "project": project,
-        })
+        iid = paper["item_id"]
+        spec = {"id": f"zotero-{iid}", "zotero_item": iid,
+                "title": paper["title"], "project": project}
+        pdf = pdf_path(iid)
+        if pdf:
+            spec["path"] = pdf
+        else:
+            arx = _arxiv_from_item(iid)
+            if arx:
+                spec["arxiv"] = arx
+            # else: no PDF and no arXiv id in metadata — leave just zotero_item +
+            # title, so the skill resolves via arXiv-HTML / DOI / web (SKILL §1.2).
+            # We never emit a None path that the queue contract would reject.
+        out.append(spec)
     return out
 
 

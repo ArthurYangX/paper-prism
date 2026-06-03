@@ -45,7 +45,7 @@ papers:
 |-------|---------|----------|
 | `path:` | absolute path to a local PDF | used directly |
 | `arxiv:` | arXiv ID or URL | `wget` download to `~/cache/arxiv/{id}.pdf` |
-| `zotero:` | Zotero title search / item key | `zotero_helper.py pdf` resolves the PDF path |
+| `zotero:` | Zotero title search / item key | `zotero.py pdf` resolves the PDF path |
 
 Precedence: `path > arxiv > zotero`. Use exactly one per paper.
 

@@ -61,20 +61,28 @@ Checklist:
 - [ ] Long formulas split?
 - [ ] Blank lines before and after `$$`?
 
-## Table extraction standards
+## Table extraction standards — screenshots, never markdown 🚨
 
-**You must extract ALL tables in the paper**, fully preserving every row and column of data:
+**Every table is a SCREENSHOT of the original PDF — never re-typed as markdown.**
+Re-typing corrupts numbers, bold (the best-in-column marker), underlines, arrows,
+± std-devs, and merged cells, and it reads as "an AI reworded it" rather than "I
+read the paper". This is paper-prism's iron rule (see SKILL.md § Iron rule and
+`docs/design-notes.md`).
 
-```markdown
-### Table X: {table title}
+SOP — the table agent does this; do **NOT** hand-write a markdown table:
 
-| Method | Metric1 | Metric2 |
-|--------|---------|---------|
-| Baseline | 45.2 | 78.3 |
-| **Ours** | **52.1** | **85.6** |
-
-**Table notes**: {key findings}
+```bash
+# 1. render the page(s) holding the table at 200 DPI
+python3 skills/paper-prism/assets/prism_helpers.py render paper.pdf /tmp {first} {last} {method}_page
+# 2. Read the page PNG, find the table's pixel box, crop it (header rows + caption included):
+python3 -c "from prism_helpers import crop_region; crop_region('/tmp/{method}_page-NN.png', \
+  'assets/{method}_table_K.png', (left, top, right, bottom))"
+# 3. Read the crop back: caption + header + ALL data rows present, no truncation. Re-crop if off.
 ```
+
+Embed it in the note as `![[{method}_table_K.png]]`. The only sanctioned exception
+is a trivial 2×3 table you author as your **own** synthesis (e.g. a module-role
+table) — a paper's result/ablation tables are **always** screenshots.
 
 ## Figure extraction standards
 

@@ -136,7 +136,7 @@ $$
 
 ## Key Figures & Tables
 
-<!-- Figures and tables are emitted as placeholders, then filled in by the coordinator from /tmp/{method}_figmap.json and /tmp/{method}_tablemap.json. -->
+<!-- Figures and tables are emitted as placeholders, then filled in by the coordinator from .cache/{method}_figmap.json and .cache/{method}_tablemap.json. -->
 <!-- Do NOT re-type a paper table as markdown and do NOT replace a figure with prose. Tables are screenshots of the original PDF, never markdown. -->
 
 ### Figure 1: {title}

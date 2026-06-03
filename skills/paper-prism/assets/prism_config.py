@@ -39,7 +39,7 @@ def safe_name(name: str) -> str:
     `method_name`/`project` from escaping the vault via `../` or an absolute path
     when it is interpolated into a path. Returns "untitled" if nothing survives.
     """
-    s = re.sub(r"[^\w.+-]", "_", str(name))   # drops / \ : space etc.
+    s = re.sub(r"[^A-Za-z0-9._+-]", "_", str(name))   # ASCII-only: drops / \ : space, CJK, Greek, …
     while ".." in s:
         s = s.replace("..", "_")
     s = s.strip("._")

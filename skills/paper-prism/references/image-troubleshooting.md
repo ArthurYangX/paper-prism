@@ -10,7 +10,7 @@ Common problems:
 - Some Figures are composed of several small images stitched together
 
 **How to fix**:
-1. When fetching the page, extract each Figure's caption and its corresponding img src. `prism_helpers.fetch_arxiv_html(arxiv_id)` retrieves the HTML, and `prism_helpers.parse_arxiv_figures(html, arxiv_id)` returns the (Figure caption ↔ img src) mapping.
+1. When fetching the page, extract each Figure's caption and its corresponding img src. `prism_helpers.fetch_arxiv_html(arxiv_id)` retrieves the HTML, and `prism_helpers.parse_arxiv_figures(html)` returns the (Figure caption ↔ img src) mapping.
 2. After downloading, **you must verify** — Read each image to confirm the content is correct.
 3. When a file is < 10KB, you must re-check it (a tiny file is almost always an icon, not the real figure).
 
@@ -21,7 +21,7 @@ When arXiv HTML retrieval fails or the figures are incomplete, try the following
 ### Source A: arXiv HTML (preferred)
 - `prism_helpers.fetch_arxiv_html(arxiv_id)` to get `https://arxiv.org/html/{arxiv_id}`, then `prism_helpers.parse_arxiv_figures(...)` to extract the img src of each `<figure>`
 - First count the paper's total number of Figures to ensure complete extraction
-- `prism_helpers.download_figures(figures, dest_dir)` downloads the parsed figures
+- `prism_helpers.download_figures(arxiv_id, figures, out_dir, prefix="{method}_fig")` downloads the parsed figures
 
 ### Source B: project page (supplementary)
 - Find the project page from the paper's abstract / HTML (keywords: `project page`, `github.io`, `our website`)
@@ -34,7 +34,7 @@ wget -O /tmp/paper.pdf "https://arxiv.org/pdf/{arxiv_id}.pdf"
 mkdir -p {note directory}/assets/
 pdfimages -png /tmp/paper.pdf {note directory}/assets/{method name}_fig
 ```
-For figures embedded as vector regions or full pages, use `prism_helpers.render_pdf_pages(pdf_path, pages)` to render pages to images and `prism_helpers.crop_region(image_path, box)` to crop out the specific figure region.
+For figures embedded as vector regions or full pages, use `prism_helpers.render_pdf_pages(pdf, out_dir, first, last)` to render pages to images and `prism_helpers.crop_region(src, out, box)` to crop out the specific figure region.
 After extraction, verify: file >10KB, and Read to confirm the content is correct.
 
 ## Selective localization (resolving unreachable external links) — OPTIONAL

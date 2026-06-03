@@ -46,13 +46,13 @@ removed.
  │                                                                            │
  │   ┌─ Agent A · analysis ── model = cfg.models.analysis  (opus) ──────────┐ │
  │   │    twelve-question analysis + full note body                         │ │
- │   │    → /tmp/{method}_qa.md   /tmp/{method}_note_body.md                 │ │
+ │   │    → .cache/{method}_qa.md   .cache/{method}_note_body.md                 │ │
  │   ├─ Agent B · figures ──── model = cfg.models.figures   (sonnet) ───────┤ │
  │   │    fetch_arxiv_html → parse_arxiv_figures → download_figures → verify │ │
- │   │    → assets/{method}_fig_*.png   /tmp/{method}_figmap.json            │ │
+ │   │    → assets/{method}_fig_*.png   .cache/{method}_figmap.json            │ │
  │   └─ Agent C · tables ───── model = cfg.models.tables    (sonnet) ───────┘ │
  │        render_pdf_pages → Read → crop_region (PIL)                         │
- │        → assets/{method}_table_*.png  /tmp/{method}_tablemap.json          │
+ │        → assets/{method}_table_*.png  .cache/{method}_tablemap.json          │
  │                                                                            │
  │   wall clock ≈ max(A,B,C) ≈ 70s    (serial would be ≈ 150s)               │
  │   cost: 1×opus + 2×sonnet per paper (~3× cheaper than 3×opus)             │
@@ -84,7 +84,7 @@ removed.
  ┌──────────────────────────────────────────────────────────────────────────┐
  │ PHASE 5 · REPORT + CLEANUP                                                 │
  │   verify 5 artifacts (note · slides.md/pdf/pptx · original.pdf) + MOC rows │
- │   rm -f /tmp/{method}_page-*.png /tmp/{method}_qa.md … _*map.json           │
+ │   on success: purge_cache(.cache/) · rm -f /tmp/{method}_page-*.png (scratch)           │
  │   report output paths                                                      │
  └──────────────────────────────────────────────────────────────────────────┘
 ```
@@ -114,8 +114,8 @@ This is the heart of the design. In a single message the main agent issues three
 prompts live in `references/subagent-prompts.md`):
 
 - **Agent A — analysis**, on `cfg.models.analysis` (**opus**). Produces the
-  twelve-question analysis (`/tmp/{method}_qa.md`) and the long-form note body
-  (`/tmp/{method}_note_body.md`). It writes `<!-- FIGURE_N_PLACEHOLDER -->` /
+  twelve-question analysis (`.cache/{method}_qa.md`) and the long-form note body
+  (`.cache/{method}_note_body.md`). It writes `<!-- FIGURE_N_PLACEHOLDER -->` /
   `<!-- TABLE_N_PLACEHOLDER -->` markers where images will go, but does *not*
   fetch any images itself. This is the agent whose quality determines the depth
   of everything downstream, so it gets the strongest model.
@@ -123,11 +123,11 @@ prompts live in `references/subagent-prompts.md`):
   recommended extraction path: `fetch_arxiv_html()` → `parse_arxiv_figures()` →
   `download_figures()`, then Reads each image to confirm it matches its caption
   (arXiv HTML's `xN` ids do not map 1:1 onto printed Figure numbers). Emits
-  `/tmp/{method}_figmap.json`.
+  `.cache/{method}_figmap.json`.
 - **Agent C — tables**, on `cfg.models.tables` (**sonnet**). Runs the table
   iron-rule SOP: `render_pdf_pages()` at 200 DPI → Read each page to locate the
   pixel box → `crop_region()` (PIL) to cut the table out of the original.
-  Emits `/tmp/{method}_tablemap.json`.
+  Emits `.cache/{method}_tablemap.json`.
 
 **Why split across model tiers.** Agents B and C are mechanical. Figure
 download is "parse HTML, fetch the listed `src`s, eyeball that the picture
@@ -154,7 +154,7 @@ come along for free. Over a 50-paper batch that ~80s/paper saving compounds into
 hours.
 
 **The contract that makes isolation safe.** The three agents never touch the
-same files. A writes only to `/tmp/*_qa.md` and `/tmp/*_note_body.md`; B writes
+same files. A writes only to `.cache/*_qa.md` and `.cache/*_note_body.md`; B writes
 images plus `figmap.json`; C writes images plus `tablemap.json`. A leaves
 placeholders rather than embedding paths, so it doesn't need to know what B and
 C will produce. Phase 3 is the only place the three streams meet. This clean cut
@@ -219,11 +219,12 @@ of the PDF — not duplicates.
 ### Phase 5 · Report + Cleanup
 
 Verify the five expected artifacts exist (note; `slides.md`/`pdf`/`pptx`; the
-copied original PDF) and that the MOC rows landed. Delete the scratch files —
-the rendered page PNGs and the three `/tmp` exchange files — and report the
-output paths. The scratch files are deletable precisely because the durable
-outputs are co-located in the vault; nothing in `/tmp` is load-bearing after
-Phase 4.
+copied original PDF) and that the MOC rows landed. On success, `purge_cache()`
+the per-paper `.cache/` (its qa / note_body / figmap / tablemap exchange files)
+and delete the rendered page PNGs from `/tmp`; then report the output paths.
+The `.cache/` is **durable until success** — that is exactly what lets a crash
+resume from the missing phase (see Checkpoint & resume below); only the page
+PNGs and the progress/error logs in `/tmp` are throwaway scratch.
 
 ### Parallel vs serial, per phase
 

@@ -5,7 +5,7 @@
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 ![Claude Code skill](https://img.shields.io/badge/Claude%20Code-skill-8A2BE2)
 ![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)
-![tests 138 passing](https://img.shields.io/badge/tests-138%20passing-brightgreen)
+![tests 146 passing](https://img.shields.io/badge/tests-146%20passing-brightgreen)
 
 **English** · [简体中文](README.zh-CN.md)
 
@@ -303,7 +303,7 @@ In batch mode paper-prism runs a condensed five-question pass (Q1 + Q3 + Q4-brie
 
 ## Project status
 
-**v0.1.0** — works, and has been used on real papers. The note/deck/graph artifacts and the binding are stable; the skill's *internal* prompts, phase wiring, and config keys may still shift as it is hardened. Test suite is **138 checks, zero external dependencies** (`python3 tests/test_prism.py`). See [CHANGELOG.md](CHANGELOG.md).
+**v0.1.0** — works, and has been used on real papers. The note/deck/graph artifacts and the binding are stable; the skill's *internal* prompts, phase wiring, and config keys may still shift as it is hardened. Test suite is **146 checks, zero external dependencies** (`python3 tests/test_prism.py`). See [CHANGELOG.md](CHANGELOG.md).
 
 ---
 

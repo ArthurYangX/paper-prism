@@ -131,6 +131,29 @@ def page_size(src: str) -> tuple[int, int]:
 # ===========================================================================
 # 3. arXiv HTML figures  (recommended extraction path)
 # ===========================================================================
+def download_arxiv_pdf(arxiv_id: str, dest_dir: str, prefix: str = "") -> str | None:
+    """Download an arXiv PDF deterministically. Returns the saved path, or None.
+
+    Fetches `https://arxiv.org/pdf/{id}` via the retrying `_http_get` (the id is
+    shape-validated; the host is fixed to arxiv.org over https). Verifies the bytes
+    start with the `%PDF-` magic before writing, so a captcha / HTML error page is
+    never saved as a `.pdf`. This is the deterministic downloader the `arxiv:` queue
+    mode and SKILL §1.2 promise, so the skill never has to improvise a `curl`.
+    """
+    if not _valid_arxiv_id(arxiv_id):
+        return None
+    try:
+        data = _http_get(f"https://arxiv.org/pdf/{arxiv_id}")
+    except Exception:  # noqa: BLE001
+        return None
+    if not data or data[:5] != b"%PDF-":
+        return None
+    Path(dest_dir).mkdir(parents=True, exist_ok=True)
+    out = Path(dest_dir) / f"{prefix or arxiv_id.replace('/', '_')}.pdf"
+    out.write_bytes(data)
+    return str(out)
+
+
 def fetch_arxiv_html(arxiv_id: str, cache_path: str | None = None) -> str:
     """Download an arXiv HTML5 fulltext page (arxiv.org/html/{id}). Returns HTML."""
     if cache_path and os.path.exists(cache_path):

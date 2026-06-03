@@ -45,7 +45,7 @@ seconds:
 |------|-------------------|
 | `*.slides.pdf` / `*.slides.pptx` | `marp <name>.slides.md --pdf --allow-local-files -o <name>.slides.pdf` (and `--pptx`) |
 | source PDFs (`Transformer.pdf`, `Mamba.pdf`, `attention.pdf`, `mamba.pdf`) | download from arXiv, e.g. `curl -L -o mamba.pdf https://arxiv.org/pdf/2312.00752` |
-| `paper-prism-demo-config.json` | a local config pointing `vault_path` at this `vault/` (held out — it carries an absolute machine path) |
+| `prism-demo-config.json` | a local config pointing `vault_path` at this `vault/` (held out — it carries an absolute machine path) |
 
 ## Notes
 

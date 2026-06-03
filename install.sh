@@ -112,11 +112,11 @@ echo ""
 echo "  Running dependency check ..."
 echo "  ──────────────────────────────────────────────────────────────"
 echo ""
-python3 "$SCRIPT_DIR/scripts/doctor.py" --repo-dir "$SCRIPT_DIR" || true
-# We use `|| true` so install.sh always exits 0 after the doctor runs.
-# The doctor itself exits 1 if required deps are missing — the user sees the
-# report and can decide what to fix; we don't want the whole script to abort
-# before printing the usage instructions below.
+# Capture the doctor's exit code (1 = required deps missing) WITHOUT aborting the
+# script — we still print usage below, but we must not claim the install is "ready"
+# when a required dependency is missing.
+DOCTOR_OK=0
+python3 "$SCRIPT_DIR/scripts/doctor.py" --repo-dir "$SCRIPT_DIR" || DOCTOR_OK=1
 
 # ---------------------------------------------------------------------------
 # 5. Done — tell the user how to use paper-prism.
@@ -124,7 +124,13 @@ python3 "$SCRIPT_DIR/scripts/doctor.py" --repo-dir "$SCRIPT_DIR" || true
 echo ""
 echo "  ──────────────────────────────────────────────────────────────"
 echo ""
-echo "  ✅ paper-prism is installed."
+if [[ "$DOCTOR_OK" -eq 0 ]]; then
+    echo "  ✅ paper-prism is installed and ready."
+else
+    echo "  ⚠️  paper-prism is installed, but NOT ready yet — a required dependency"
+    echo "      is missing (see the doctor report above). Install it, then re-run"
+    echo "      this script (or just \`python3 scripts/doctor.py\`) to confirm."
+fi
 echo ""
 echo "  HOW TO USE"
 echo "  ──────────"

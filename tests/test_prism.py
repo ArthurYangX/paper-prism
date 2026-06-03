@@ -457,6 +457,8 @@ def test_review_fixes(tmp):
     check("#3 safe_name strips slashes", "/" not in pc.safe_name("a/b/c"))
     check("#3 safe_name keeps good names", pc.safe_name("ViT-S") == "ViT-S" and pc.safe_name("S4++") == "S4++")
     check("#3 safe_name empty→untitled", pc.safe_name("..") == "untitled")
+    check("F4 safe_name ASCII-only drops CJK", pc.safe_name("论文 方法") == "untitled" and pc.safe_name("Net论文") == "Net")
+    check("F4 safe_name ASCII-only drops Greek/subscripts", pc.safe_name("π₀.₅") == "untitled")
 
     # #4 figure-url allowlist (pure, no network)
     check("#4 allow arxiv https", ph._is_allowed_fig_url("https://arxiv.org/html/2312.00752/x1.png"))
@@ -548,6 +550,13 @@ def test_zotero(tmp):
         INSERT INTO itemDataValues VALUES (100,'Mamba: Linear-Time'),(101,'2023-12-01');
         INSERT INTO collectionItems VALUES (1,10);
         INSERT INTO itemAttachments VALUES (11,10,'application/pdf','storage:mamba.pdf');
+        -- extra items: F2 (no-PDF item with arXiv in url) and R7 (dup title, no PDF)
+        INSERT INTO collections VALUES (3,'Extra',NULL);
+        INSERT INTO fields VALUES (3,'url');
+        INSERT INTO items VALUES (12,'NOPDFKEY',2),(13,'DUPNOPDF',2);
+        INSERT INTO itemData VALUES (12,1,102),(12,3,200),(13,1,103);
+        INSERT INTO itemDataValues VALUES (102,'NoPDF Paper'),(200,'https://arxiv.org/abs/2401.00001'),(103,'Mamba: Linear-Time');
+        INSERT INTO collectionItems VALUES (3,12),(3,13);
         """
     )
     con.commit(); con.close()
@@ -572,6 +581,14 @@ def test_zotero(tmp):
         check("zotero find_item_key in-collection", zt.find_item_key("Mamba: Linear-Time", collection_id=1) == "PAPERKEY")
         check("zotero find_item_key miss → None", zt.find_item_key("Some Other Paper") is None)
         check("zotero find_item_key wrong-collection → None", zt.find_item_key("Mamba: Linear-Time", collection_id=2) is None)
+        # R7: two copies match the title (10 has a PDF, 13 doesn't) → prefer the PDF copy
+        check("zotero find_item_key prefers the PDF copy", zt.find_item_key("Mamba: Linear-Time") == "PAPERKEY")
+        # F2: a collection item without a PDF emits an arxiv source (from metadata), never path:None
+        q3 = zt.zotero_collection_to_queue(3, recursive=False)
+        s12 = next(s for s in q3 if s["zotero_item"] == 12)
+        check("zotero no-PDF → arxiv source", s12.get("arxiv") == "2401.00001" and "path" not in s12)
+        s13 = next(s for s in q3 if s["zotero_item"] == 13)
+        check("zotero no-PDF no-arxiv → zotero_item kept, no None path", "path" not in s13 and s13["zotero_item"] == 13)
     finally:
         del os.environ["PRISM_CONFIG"]
 
@@ -588,6 +605,23 @@ def test_marp_missing(tmp):
         check("marp missing raises", "marp not found" in str(e))
     finally:
         _sh.which = real
+
+
+def test_arxiv_download(tmp):
+    print("arxiv pdf download")
+    check("download_arxiv_pdf rejects bad id", ph.download_arxiv_pdf("not an id!", tmp) is None)
+    real = ph._http_get
+    ph._http_get = lambda url, **kw: b"%PDF-1.4 fake body"
+    try:
+        out = ph.download_arxiv_pdf("1706.03762", tmp, prefix="Transformer")
+        check("download_arxiv_pdf saves a verified PDF",
+              out is not None and out.endswith("Transformer.pdf")
+              and Path(out).read_bytes().startswith(b"%PDF-"))
+        ph._http_get = lambda url, **kw: b"<html>captcha</html>"
+        check("download_arxiv_pdf rejects a non-PDF body",
+              ph.download_arxiv_pdf("1706.03762", tmp) is None)
+    finally:
+        ph._http_get = real
 
 
 # ---------------------------------------------------------------------------
@@ -608,6 +642,7 @@ def main():
         test_review_fixes(tmp)
         test_zotero(tmp)
         test_marp_missing(tmp)
+        test_arxiv_download(tmp)
 
     print()
     if _failures:
