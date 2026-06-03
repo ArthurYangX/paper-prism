@@ -1,6 +1,6 @@
-# Contributing to prism
+# Contributing to paper-prism
 
-Thanks for helping refract papers better. prism is a Claude Code skill plus a
+Thanks for helping refract papers better. paper-prism is a Claude Code skill plus a
 small, deliberately boring Python toolbox. Contributions that keep it boring —
 deterministic, stdlib-first, well-tested — are the most welcome.
 
@@ -13,21 +13,21 @@ python3 tests/test_prism.py
 The suite is **43 checks with zero external dependencies** and it must stay
 green and dependency-free. It gates everything: config/label resolution, the
 three-piece binding (idempotency + user-content protection), both MOC writers,
-and the queue parsers. If your change touches `skills/prism/assets/*.py`, add or
+and the queue parsers. If your change touches `skills/paper-prism/assets/*.py`, add or
 update a check; a feature without a check is treated as unfinished.
 
 ## Common changes
 
 ### Add a concept bucket
 Concept notes are filed into categories. To add or rename a bucket, edit
-`skills/prism/references/concept-categories.md` — that file is the single source
+`skills/paper-prism/references/concept-categories.md` — that file is the single source
 of truth for the category list, the per-paper concept budget, and the
 alias-dedup rules. No code change is needed; the skill reads the categories from
 there.
 
 ### Add or change an output language label
 Generated headings are i18n. Each language is a flat label dict in
-`skills/prism/assets/prism_config.py`:
+`skills/paper-prism/assets/prism_config.py`:
 
 - to tweak a single English/Chinese heading, edit `LABELS_EN` / `LABELS_ZH`;
 - to add a new language, add a `LABELS_<XX>` dict with the same keys and register
@@ -57,12 +57,12 @@ check in `tests/test_prism.py` for any new preset.
 - State what you changed and why, and confirm `python3 tests/test_prism.py`
   passes (paste the `OK — N checks passed` line).
 - If you change skill behavior, update the relevant section of
-  `skills/prism/SKILL.md` and any affected `references/*.md` in the same PR.
+  `skills/paper-prism/SKILL.md` and any affected `references/*.md` in the same PR.
 - New behavior in `*.py` ⇒ new or updated checks in `tests/test_prism.py`.
 - Be honest about provenance. If you port an idea from another skill, note it.
 
 ## Attribution
 
-prism derives from the community skill `paper-reader` (see [NOTICE](NOTICE)). If
+paper-prism derives from the community skill `paper-reader` (see [NOTICE](NOTICE)). If
 you recognize that skill or are its author, please open an issue — credit is
 owed and we want to give it.

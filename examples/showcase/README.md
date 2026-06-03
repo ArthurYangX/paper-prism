@@ -1,15 +1,15 @@
-# prism · Output Showcase
+# paper-prism · Output Showcase
 
-This folder is for screenshots and recordings of real prism output.
-If you have run prism on a paper queue, capture the images listed below and
+This folder is for screenshots and recordings of real paper-prism output.
+If you have run paper-prism on a paper queue, capture the images listed below and
 drop them here so newcomers can see what finished output looks like before
 they try it themselves.
 
 ---
 
-## What a finished prism run produces
+## What a finished paper-prism run produces
 
-For each paper, prism writes a **three-piece folder** inside your Obsidian vault
+For each paper, paper-prism writes a **three-piece folder** inside your Obsidian vault
 under `{project}/_slides/{MethodName}/`:
 
 1. **Main note** (`{MethodName}.md`) — a structured, heavily-linked Obsidian note
@@ -27,7 +27,7 @@ under `{project}/_slides/{MethodName}/`:
    dataset, and concept mentioned gets a `[[WikiLink]]`, so Obsidian's Graph View
    automatically builds a knowledge graph across all papers you have read.
 
-After the whole queue finishes, prism appends a row for each paper into the
+After the whole queue finishes, paper-prism appends a row for each paper into the
 **Project MOC** (`{project}/MOC.md`) — a Dataview table with columns: method
 name, category, relevance, priority, status emoji, and a direct link to the
 main note. The MOC is idempotent: re-running the queue only adds rows for
@@ -82,7 +82,7 @@ summary line.*
 
 ## Contributing a screenshot
 
-1. Run prism on `examples/papers.example.yaml` (see `examples/README.md`).
+1. Run paper-prism on `examples/papers.example.yaml` (see `examples/README.md`).
 2. Take a screenshot of each artifact above.
 3. Save them as `note.png`, `slides-pdf.png`, `graph.png`, `moc.png`,
    `terminal.png` in this folder.

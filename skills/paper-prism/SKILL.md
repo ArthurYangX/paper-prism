@@ -1,5 +1,5 @@
 ---
-name: prism
+name: paper-prism
 description: |
   Refract one paper — or a whole library — into a structured Obsidian knowledge
   package: a deep main note, a slide deck (PDF + editable PPTX), and a linked
@@ -16,12 +16,12 @@ description: |
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 ---
 
-# prism — paper → notes + slides + concept graph
+# paper-prism — paper → notes + slides + concept graph
 
 > **One paper, refracted.** Twelve-question deep read · per-figure/table slide deck ·
 > three-piece Obsidian binding · parallel subagents for scale.
 
-prism turns a PDF/arXiv/Zotero reference into:
+paper-prism turns a PDF/arXiv/Zotero reference into:
 1. **a main note** — the deepest artifact: twelve-question analysis, formula
    triplets, every figure & table explained, `[[concept]]` links;
 2. **a slide deck** — a ~30-page Marp deck (PDF + editable PPTX), one page per
@@ -39,7 +39,7 @@ feeds it a longer queue.
 Read configuration via the helper (never hard-code paths):
 
 ```bash
-python3 skills/prism/assets/prism_config.py   # prints resolved config + labels
+python3 skills/paper-prism/assets/prism_config.py   # prints resolved config + labels
 ```
 
 In Python the pipeline uses:
@@ -51,7 +51,7 @@ cfg = load_config()        # vault_path, notes_folder, default_project, zotero_*
 L   = get_labels(cfg)      # output headings (English by default; lang:"zh" for Chinese)
 ```
 
-Config resolves from `$PRISM_CONFIG` → `assets/config.json` → `~/.config/prism/config.json`
+Config resolves from `$PRISM_CONFIG` → `assets/config.json` → `~/.config/paper-prism/config.json`
 → built-in defaults. Copy `assets/config.example.json` → `assets/config.json` and edit.
 Output headings are **i18n** — set `"lang": "en"` or `"zh"`, or override single
 labels under `"labels"`.
@@ -90,8 +90,8 @@ queue (`assets/prism_refs.py`):
   the rest to `zotero:` (title search), producing a runnable queue. CLI:
   `python3 assets/prism_refs.py bib refs.bib` or `... pdf paper.pdf`.
 
-**Mode 7 (discovery sources) — separate by design.** prism does NOT scrape or
-score papers; discovery stays in dedicated upstream skills. prism only *ingests*
+**Mode 7 (discovery sources) — separate by design.** paper-prism does NOT scrape or
+score papers; discovery stays in dedicated upstream skills. paper-prism only *ingests*
 their output and refracts the keepers. The handoff contract is a JSON list:
 
 ```json
@@ -108,12 +108,12 @@ Selectable discovery front-ends (each is an independent skill / tool — pick on
   → `daily_papers_top30.json`) → `discovery digest.json` → process the picks.
 - **topic search** → a lit-search skill (e.g. `research-lit "topic" — sources: ...`,
   `semantic-scholar`, `arxiv`) → export its hits as the JSON above (or a `.bib`) →
-  feed prism.
-- **your own recommender** → emit the JSON contract; prism doesn't care how you got it.
+  feed paper-prism.
+- **your own recommender** → emit the JSON contract; paper-prism doesn't care how you got it.
 
 If a discovery skill is present, the main agent may invoke it and pipe its output;
-if not, the user runs discovery themselves and hands prism the JSON/`.bib`. Either
-way prism stays the deep-processing backend.
+if not, the user runs discovery themselves and hands paper-prism the JSON/`.bib`. Either
+way paper-prism stays the deep-processing backend.
 
 **Always surface `_dropped`.** `refs_to_queue` / `discovery_to_queue` return a
 `_dropped` count for entries with no usable id or title. When it's > 0, tell the
@@ -252,7 +252,7 @@ standards: `references/quality-standards.md`, `references/image-troubleshooting.
 Triggered by "make a deck / 出 PPT / make slides / deck". Runs five phases;
 **parallel by default**.
 
-> Not to be confused with a "write *my own* paper → beamer talk" skill. prism
+> Not to be confused with a "write *my own* paper → beamer talk" skill. paper-prism
 > reads *other people's* papers and produces a study/share deck via Marp.
 
 ```
@@ -337,7 +337,7 @@ than "an AI reworded it".
 Screenshot SOP:
 
 ```bash
-python3 skills/prism/assets/prism_helpers.py render paper.pdf /tmp {start} {end} {method}_page
+python3 skills/paper-prism/assets/prism_helpers.py render paper.pdf /tmp {start} {end} {method}_page
 python3 -c "from prism_helpers import crop_region; crop_region('/tmp/{method}_page-NN.png', \
   'assets/{method}_table_K.png', (left, top, right, bottom))"
 ```
@@ -463,7 +463,7 @@ re-run the expensive opus analysis — it resumes from the missing phase.
 whole papers in the batch dedup pass. A failed paper keeps its `.cache`, logs to
 `/tmp/prism_errors.log`, and never blocks the next paper.
 
-Inspect anytime: `python3 skills/prism/assets/prism_state.py status {project}`.
+Inspect anytime: `python3 skills/paper-prism/assets/prism_state.py status {project}`.
 
 ---
 

@@ -5,7 +5,7 @@ paginate: true
 math: mathjax
 size: 16:9
 header: '{Method} · {Venue} {Year}'
-footer: 'prism · Twelve Questions + every figure & table'
+footer: 'paper-prism · Twelve Questions + every figure & table'
 style: |
   section {
     font-family: 'PingFang SC', 'Helvetica Neue', sans-serif;
@@ -452,7 +452,7 @@ The two contributions are orthogonal / coupled: {explanation}
 
 # Thank you
 
-### `prism` · Twelve Questions + every figure & table
+### `paper-prism` · Twelve Questions + every figure & table
 ### {total pages} pages
 
 ### Want the full Obsidian note? Say "give me the full note"

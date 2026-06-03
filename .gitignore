@@ -1,7 +1,7 @@
 # --- prism private config (CRITICAL: never commit a user's vault path) ---
-skills/prism/assets/config.json
+skills/paper-prism/assets/config.json
 # keep the template tracked:
-!skills/prism/assets/config.example.json
+!skills/paper-prism/assets/config.example.json
 
 # --- Python ---
 __pycache__/

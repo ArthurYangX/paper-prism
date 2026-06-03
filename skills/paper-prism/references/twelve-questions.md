@@ -256,5 +256,5 @@ Each time the user pastes new content, **without any reminder**, automatically: 
 6. **Surface signature formulas even from an appendix** (e.g. an additive-attention
    scoring function) in Q6, and cite the section/appendix when a detail comes from
    one.
-7. Output in the user's language (default English per prism's `lang:"en"`); follow the user's explicit language request otherwise
+7. Output in the user's language (default English per paper-prism's `lang:"en"`); follow the user's explicit language request otherwise
 8. Control redundancy: each question's answer is **no more than 6 sentences** (elevator summary 2–3 sentences, self-check 1 sentence)

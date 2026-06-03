@@ -5,7 +5,7 @@ paginate: true
 math: mathjax
 size: 16:9
 header: 'Transformer · NeurIPS 2017'
-footer: 'prism · Twelve Questions + every figure & table'
+footer: 'paper-prism · Twelve Questions + every figure & table'
 style: |
   section {
     font-family: 'PingFang SC', 'Helvetica Neue', sans-serif;
@@ -457,7 +457,7 @@ $$
 
 # Thank you
 
-### `prism` · Twelve Questions + every figure & table
+### `paper-prism` · Twelve Questions + every figure & table
 ### 35 pages
 
 ### Want the full Obsidian note? Open `Transformer.md`

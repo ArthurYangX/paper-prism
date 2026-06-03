@@ -1,9 +1,9 @@
 # =============================================================================
-# prism · Example Paper Queue
+# paper-prism · Example Paper Queue
 # =============================================================================
 # Copy this file, edit the entries you want, then tell Claude Code:
 #   "batch from examples/papers.example.yaml"
-# prism will download any arXiv PDFs automatically and process all papers
+# paper-prism will download any arXiv PDFs automatically and process all papers
 # in parallel (up to `parallel` at a time), writing notes + slides + MOC.
 #
 # IMPORTANT — Quote all arXiv IDs as strings (e.g. arxiv: "2312.00752").

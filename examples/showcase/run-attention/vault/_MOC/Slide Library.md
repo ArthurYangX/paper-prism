@@ -1,6 +1,6 @@
 # Slide Library
 
-> Auto-maintained by prism after each run.
+> Auto-maintained by paper-prism after each run.
 
 | Paper | Topic | Venue · Year | Preview |
 |------|------|------|------|

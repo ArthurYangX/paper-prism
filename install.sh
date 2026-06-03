@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# prism · installer
+# paper-prism · installer
 #
 # What this does:
-#   1. Symlinks ~/.claude/skills/prism -> this repo's skills/prism directory.
+#   1. Symlinks ~/.claude/skills/paper-prism -> this repo's skills/paper-prism directory.
 #   2. Copies config.example.json -> config.json if no config exists yet.
 #   3. Runs the dependency doctor (scripts/doctor.py).
 #
@@ -18,14 +18,14 @@ set -euo pipefail
 # Resolve this repo's root, regardless of where the script is called from.
 # ---------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SKILL_SRC="$SCRIPT_DIR/skills/prism"
-SKILL_LINK="$HOME/.claude/skills/prism"
+SKILL_SRC="$SCRIPT_DIR/skills/paper-prism"
+SKILL_LINK="$HOME/.claude/skills/paper-prism"
 CONFIG_SRC="$SKILL_SRC/assets/config.example.json"
 CONFIG_DST="$SKILL_SRC/assets/config.json"
 
 echo ""
 echo "╔══════════════════════════════════════════════════════╗"
-echo "║              prism  ·  installer                     ║"
+echo "║              paper-prism  ·  installer                     ║"
 echo "╚══════════════════════════════════════════════════════╝"
 echo ""
 
@@ -38,7 +38,7 @@ if [[ ! -d "$HOME/.claude/skills" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 2. Symlink ~/.claude/skills/prism -> $SCRIPT_DIR/skills/prism
+# 2. Symlink ~/.claude/skills/paper-prism -> $SCRIPT_DIR/skills/paper-prism
 #    Safe logic: skip if already correct; warn and bail if occupied by something
 #    else (real dir or symlink to a different target).
 # ---------------------------------------------------------------------------
@@ -47,15 +47,15 @@ if [[ -e "$SKILL_LINK" || -L "$SKILL_LINK" ]]; then
     if [[ -L "$SKILL_LINK" ]]; then
         existing_target="$(readlink "$SKILL_LINK")"
         if [[ "$existing_target" == "$SKILL_SRC" ]]; then
-            echo "  ✓  ~/.claude/skills/prism already points to this repo — nothing to do."
+            echo "  ✓  ~/.claude/skills/paper-prism already points to this repo — nothing to do."
         else
             echo ""
-            echo "  ✗  WARNING: ~/.claude/skills/prism already exists as a symlink"
+            echo "  ✗  WARNING: ~/.claude/skills/paper-prism already exists as a symlink"
             echo "     but it points somewhere else:"
             echo "     → $existing_target"
             echo ""
             echo "  To reinstall, remove it manually:"
-            echo "     rm ~/.claude/skills/prism"
+            echo "     rm ~/.claude/skills/paper-prism"
             echo "  Then re-run this script."
             echo ""
             exit 1
@@ -63,18 +63,18 @@ if [[ -e "$SKILL_LINK" || -L "$SKILL_LINK" ]]; then
     else
         # It's a real directory (or some other non-symlink file).
         echo ""
-        echo "  ✗  WARNING: ~/.claude/skills/prism already exists as a real directory."
-        echo "     prism will NOT overwrite it automatically."
+        echo "  ✗  WARNING: ~/.claude/skills/paper-prism already exists as a real directory."
+        echo "     paper-prism will NOT overwrite it automatically."
         echo ""
         echo "  To reinstall, remove it manually:"
-        echo "     rm -rf ~/.claude/skills/prism"
+        echo "     rm -rf ~/.claude/skills/paper-prism"
         echo "  Then re-run this script."
         echo ""
         exit 1
     fi
 else
     ln -s "$SKILL_SRC" "$SKILL_LINK"
-    echo "  ✓  Linked:  ~/.claude/skills/prism"
+    echo "  ✓  Linked:  ~/.claude/skills/paper-prism"
     echo "         →  $SKILL_SRC"
 fi
 
@@ -88,7 +88,7 @@ if [[ ! -f "$CONFIG_DST" ]]; then
     echo "  ✓  Created: $CONFIG_DST"
     echo ""
     echo "  ┌─────────────────────────────────────────────────────────────┐"
-    echo "  │  ACTION REQUIRED: edit config.json before using prism.      │"
+    echo "  │  ACTION REQUIRED: edit config.json before using paper-prism.      │"
     echo "  │                                                               │"
     echo "  │  Key fields to set:                                          │"
     echo "  │    vault_path    — absolute path to your Obsidian vault      │"
@@ -119,12 +119,12 @@ python3 "$SCRIPT_DIR/scripts/doctor.py" --repo-dir "$SCRIPT_DIR" || true
 # before printing the usage instructions below.
 
 # ---------------------------------------------------------------------------
-# 5. Done — tell the user how to use prism.
+# 5. Done — tell the user how to use paper-prism.
 # ---------------------------------------------------------------------------
 echo ""
 echo "  ──────────────────────────────────────────────────────────────"
 echo ""
-echo "  ✅ prism is installed."
+echo "  ✅ paper-prism is installed."
 echo ""
 echo "  HOW TO USE"
 echo "  ──────────"

@@ -15,7 +15,7 @@ created: 2026-06-03
 
 # Paper Note: Mamba — Linear-Time Sequence Modeling with Selective State Spaces
 
-<!-- prism:resources:start -->
+<!-- paper-prism:resources:start -->
 ## Resources
 
 - 📄 Paper: ![[_slides/Mamba/Mamba.pdf]]
@@ -23,9 +23,9 @@ created: 2026-06-03
 - 🌐 arXiv: https://arxiv.org/abs/2312.00752
 - 💻 Code: https://github.com/state-spaces/mamba
 - 📁 Project: [[00 Showcase]]
-<!-- prism:resources:end -->
+<!-- paper-prism:resources:end -->
 
-> The links above live in this **## Resources** block; prism refreshes them in place on each run. Keep paper background below.
+> The links above live in this **## Resources** block; paper-prism refreshes them in place on each run. Keep paper background below.
 
 | Field | Value |
 |-------|-------|
@@ -175,7 +175,7 @@ $$
 
 ## Key Figures & Tables
 
-> Figures are the authors' originals (arXiv HTML); tables are screenshots of the original PDF (prism's iron rule — never re-typed). Read-keys explain; they do not restate the numbers.
+> Figures are the authors' originals (arXiv HTML); tables are screenshots of the original PDF (paper-prism's iron rule — never re-typed). Read-keys explain; they do not restate the numbers.
 
 ### Figure 1: Overview — selective SSM with hardware-aware state expansion
 
@@ -366,4 +366,4 @@ Mamba is the first linear-time model to *match* a strong modern Transformer reci
 
 ---
 
-*Note created: 2026-06-03 · prism showcase (public paper). Phase-2 analysis produced by a parallel Opus subagent; figures by a Sonnet subagent (arXiv HTML); tables by a Sonnet subagent (PDF screenshots); assembled + figure/table numbering reconciled by the coordinator.*
+*Note created: 2026-06-03 · paper-prism showcase (public paper). Phase-2 analysis produced by a parallel Opus subagent; figures by a Sonnet subagent (arXiv HTML); tables by a Sonnet subagent (PDF screenshots); assembled + figure/table numbering reconciled by the coordinator.*

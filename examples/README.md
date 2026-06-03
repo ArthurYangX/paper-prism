@@ -1,9 +1,9 @@
-# prism · Examples
+# paper-prism · Examples
 
 | File / Folder | What it is |
 |---|---|
 | `papers.example.yaml` | Runnable batch queue of landmark public ML papers (Transformer, Mamba, LoRA, ViT, CLIP, CoT, LLaMA). Mix of `arxiv:`, `path:`, and `zotero:` entries. |
-| `showcase/` | Screenshots of real prism output — main note, slide deck, concept graph, project MOC. |
+| `showcase/` | Screenshots of real paper-prism output — main note, slide deck, concept graph, project MOC. |
 
 ## Try it
 

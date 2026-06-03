@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""prism test suite — zero external deps, runnable as `python3 tests/test_prism.py`.
+"""paper-prism test suite — zero external deps, runnable as `python3 tests/test_prism.py`.
 
 Covers config/labels resolution, the three-piece binding (idempotency +
 user-content protection), both MOC writers (in-table insertion), and the queue
@@ -14,7 +14,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-ASSETS = Path(__file__).resolve().parents[1] / "skills" / "prism" / "assets"
+ASSETS = Path(__file__).resolve().parents[1] / "skills" / "paper-prism" / "assets"
 sys.path.insert(0, str(ASSETS))
 
 import prism_config as pc          # noqa: E402
@@ -91,7 +91,7 @@ def test_resources_block(tmp):
     only.write_text("# Paper Note: Only\n\n## Resources\n\n- a\n- b\n")
     ph.inject_resources_block(str(only), "Only", arxiv_url="ZURL", cfg=cfg)
     oc = only.read_text()
-    check("only-resources note refreshed", "ZURL" in oc and "prism:resources:start" in oc)
+    check("only-resources note refreshed", "ZURL" in oc and "paper-prism:resources:start" in oc)
 
     # 🔴 #1 REGRESSION: a metadata table BELOW the resources links must survive
     # a re-bind (this is the data-loss bug the review caught).
@@ -110,7 +110,7 @@ def test_resources_block(tmp):
     check("#1 blockquote survives", "> keep this blockquote" in c2)
     check("#1 user TL;DR survives", "user summary" in c2)
     check("#1 resources actually refreshed", "second.example" in c2 and "first.example" not in c2)
-    check("#1 idempotent shape (sentinels, single block)", c2.count("prism:resources:start") == 1)
+    check("#1 idempotent shape (sentinels, single block)", c2.count("paper-prism:resources:start") == 1)
 
     # 🟠 #2 REGRESSION: an h3 directly under Resources must still refresh
     h3 = Path(tmp) / "H3.md"

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""prism · dependency doctor.
+"""paper-prism · dependency doctor.
 
 Checks that every required and optional dependency is available, then reports
 a clean checklist with ✓ / ✗ / ⚠ symbols. Exits 0 when all *required* deps
@@ -8,7 +8,7 @@ any required dep is missing.
 
 Usage (standalone):
     python3 scripts/doctor.py
-    python3 scripts/doctor.py --repo-dir /path/to/prism/repo
+    python3 scripts/doctor.py --repo-dir /path/to/paper-prism/repo
 
 Called automatically by install.sh; also useful to run at any time to
 diagnose a broken setup.
@@ -126,7 +126,7 @@ def check_pillow() -> None:
 
 
 def check_pyyaml() -> None:
-    """PyYAML enables full YAML queue parsing. prism has a built-in fallback for
+    """PyYAML enables full YAML queue parsing. paper-prism has a built-in fallback for
     the documented subset, so this is optional — but recommended for complex queues."""
     try:
         import yaml  # noqa: F401
@@ -155,11 +155,11 @@ def check_pandoc() -> None:
 
 
 def check_config(repo_dir: Path) -> None:
-    """Inspect the resolved prism config and report vault/zotero path status."""
-    assets_dir = repo_dir / "skills" / "prism" / "assets"
+    """Inspect the resolved paper-prism config and report vault/zotero path status."""
+    assets_dir = repo_dir / "skills" / "paper-prism" / "assets"
     if not assets_dir.is_dir():
-        print(f"  {WARN}  prism config  [cannot locate assets dir: {assets_dir}]")
-        _optional_missing.append("prism config")
+        print(f"  {WARN}  paper-prism config  [cannot locate assets dir: {assets_dir}]")
+        _optional_missing.append("paper-prism config")
         return
 
     # Add assets to path so prism_config imports cleanly.
@@ -175,7 +175,7 @@ def check_config(repo_dir: Path) -> None:
         cfg = prism_config.load_config()
         source = cfg.get("_config_source", "(unknown)")
 
-        print(f"  {OK}  prism config loaded")
+        print(f"  {OK}  paper-prism config loaded")
         print(f"       source:  {source}")
 
         # vault_path
@@ -196,8 +196,8 @@ def check_config(repo_dir: Path) -> None:
             print(f"            (optional — only needed for Zotero input modes)")
 
     except Exception as exc:  # noqa: BLE001
-        print(f"  {WARN}  prism config  [error loading: {exc}]")
-        _optional_missing.append("prism config")
+        print(f"  {WARN}  paper-prism config  [error loading: {exc}]")
+        _optional_missing.append("paper-prism config")
     finally:
         # Don't pollute sys.path for subsequent imports.
         if str(assets_dir) in sys.path:
@@ -210,12 +210,12 @@ def check_config(repo_dir: Path) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(
-        description="prism dependency checker — exits 1 if required deps are missing.",
+        description="paper-prism dependency checker — exits 1 if required deps are missing.",
     )
     ap.add_argument(
         "--repo-dir",
         default=None,
-        help="Path to the prism repo root (default: parent of this script's directory).",
+        help="Path to the paper-prism repo root (default: parent of this script's directory).",
     )
     args = ap.parse_args()
 
@@ -226,7 +226,7 @@ def main() -> None:
         repo_dir = Path(__file__).resolve().parent.parent
 
     print()
-    print("  prism · dependency check")
+    print("  paper-prism · dependency check")
     print("  " + "─" * 54)
 
     # ── Required ──────────────────────────────────────────────

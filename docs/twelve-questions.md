@@ -1,7 +1,7 @@
 # The twelve-question framework
 
-This is the method prism is built on, written for a human reader. You can use it
-without prism at all — it is just a disciplined way to read a paper so that you
+This is the method paper-prism is built on, written for a human reader. You can use it
+without paper-prism at all — it is just a disciplined way to read a paper so that you
 can re-explain it afterward, unaided.
 
 The core idea is one sentence: **the goal is not to summarize a paper, it is to

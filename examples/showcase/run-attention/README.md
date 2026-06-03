@@ -1,7 +1,7 @@
-# Showcase · two public papers → full prism packages
+# Showcase · two public papers → full paper-prism packages
 
-End-to-end runs of prism on two **public** papers, kept as worked examples of
-what a paper looks like after prism refracts it — and of how a project's indexes
+End-to-end runs of paper-prism on two **public** papers, kept as worked examples of
+what a paper looks like after paper-prism refracts it — and of how a project's indexes
 accumulate across papers:
 
 1. **Transformer** — *Attention Is All You Need* ([arXiv 1706.03762](https://arxiv.org/abs/1706.03762))
@@ -45,7 +45,7 @@ seconds:
 |------|-------------------|
 | `*.slides.pdf` / `*.slides.pptx` | `marp <name>.slides.md --pdf --allow-local-files -o <name>.slides.pdf` (and `--pptx`) |
 | source PDFs (`Transformer.pdf`, `Mamba.pdf`, `attention.pdf`, `mamba.pdf`) | download from arXiv, e.g. `curl -L -o mamba.pdf https://arxiv.org/pdf/2312.00752` |
-| `prism-demo-config.json` | a local config pointing `vault_path` at this `vault/` (held out — it carries an absolute machine path) |
+| `paper-prism-demo-config.json` | a local config pointing `vault_path` at this `vault/` (held out — it carries an absolute machine path) |
 
 ## Notes
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""prism · Zotero integration (self-contained, config-driven).
+"""paper-prism · Zotero integration (self-contained, config-driven).
 
 Reads a *copy* of the Zotero SQLite DB so it never locks your live library.
 Paths come from prism_config (zotero_db, zotero_storage) — nothing personal is
@@ -21,7 +21,7 @@ CLI:
     python3 zotero.py pdf <item_id>
     python3 zotero.py queue <collection_name> [--recursive] [--project NAME]
 
-Note: read-only by design — prism never modifies your Zotero library.
+Note: read-only by design — paper-prism never modifies your Zotero library.
 """
 from __future__ import annotations
 
@@ -238,7 +238,7 @@ def zotero_collection_to_queue(
     recursive: bool = True,
     project: str = "",
 ) -> list[dict]:
-    """Resolve a Zotero collection (name or id) to a prism queue spec list.
+    """Resolve a Zotero collection (name or id) to a paper-prism queue spec list.
 
     Each entry carries the PDF path (if attached) and Zotero item id so the
     binding step can link back via zotero:// .
@@ -267,7 +267,7 @@ def zotero_collection_to_queue(
 # CLI
 # ---------------------------------------------------------------------------
 def main() -> None:
-    ap = argparse.ArgumentParser(description="prism Zotero helper (read-only)")
+    ap = argparse.ArgumentParser(description="paper-prism Zotero helper (read-only)")
     sub = ap.add_subparsers(dest="cmd")
     sub.add_parser("collections")
     p = sub.add_parser("papers"); p.add_argument("collection_id", type=int); p.add_argument("--recursive", "-r", action="store_true")

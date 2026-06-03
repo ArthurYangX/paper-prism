@@ -15,7 +15,7 @@ created: 2026-06-03
 
 # Paper Note: Attention Is All You Need
 
-<!-- prism:resources:start -->
+<!-- paper-prism:resources:start -->
 ## Resources
 
 - 📄 Paper: ![[_slides/Transformer/Transformer.pdf]]
@@ -23,9 +23,9 @@ created: 2026-06-03
 - 🌐 arXiv: https://arxiv.org/abs/1706.03762
 - 💻 Code: https://github.com/tensorflow/tensor2tensor
 - 📁 Project: [[00 Showcase]]
-<!-- prism:resources:end -->
+<!-- paper-prism:resources:end -->
 
-> The links above live in this **## Resources** block; prism refreshes them in place on each run. Keep paper background below.
+> The links above live in this **## Resources** block; paper-prism refreshes them in place on each run. Keep paper background below.
 
 | Field | Value |
 |-------|-------|
@@ -191,7 +191,7 @@ $$
 
 ## Key Figures & Tables
 
-> All figures/tables are screenshots of the original PDF (prism's iron rule — tables are never re-typed as markdown). Read-keys explain; they do not restate the numbers.
+> All figures/tables are screenshots of the original PDF (paper-prism's iron rule — tables are never re-typed as markdown). Read-keys explain; they do not restate the numbers.
 
 ### Figure 1: The Transformer — model architecture
 
@@ -336,4 +336,4 @@ Inspecting individual attention heads (Figures 3–5) shows heads that specializ
 
 ---
 
-*Note created: 2026-06-03 · prism showcase (public paper).*
+*Note created: 2026-06-03 · paper-prism showcase (public paper).*

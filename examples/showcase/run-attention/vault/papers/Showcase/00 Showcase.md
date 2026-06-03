@@ -7,7 +7,7 @@ project: Showcase
 
 ## Reading Queue
 
-> Auto-maintained by prism. Status: ✅ done / ◐ reading / ⏳ queued / ❌ dropped
+> Auto-maintained by paper-prism. Status: ✅ done / ◐ reading / ⏳ queued / ❌ dropped
 
 | # | Paper | Method | Category | Venue · Year | Status | Priority | Relevance |
 |---|---|---|---|---|---|---|---|

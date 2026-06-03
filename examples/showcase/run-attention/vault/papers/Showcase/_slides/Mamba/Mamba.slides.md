@@ -5,7 +5,7 @@ paginate: true
 math: mathjax
 size: 16:9
 header: 'Mamba · COLM 2024'
-footer: 'prism · Twelve Questions + every figure & table'
+footer: 'paper-prism · Twelve Questions + every figure & table'
 style: |
   section {
     font-family: 'PingFang SC', 'Helvetica Neue', sans-serif;
@@ -503,7 +503,7 @@ $$
 
 # Thank you
 
-### `prism` · Twelve Questions + every figure & table
+### `paper-prism` · Twelve Questions + every figure & table
 ### Produced by a parallel A/B/C subagent fan-out, reconciled by the coordinator
 
 ### Want the full Obsidian note? Open `Mamba.md`

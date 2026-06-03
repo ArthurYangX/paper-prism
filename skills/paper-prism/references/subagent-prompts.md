@@ -1,6 +1,6 @@
 # Subagent prompt templates
 
-prism's pipeline fans work out to subagents. This file holds the self-contained
+paper-prism's pipeline fans work out to subagents. This file holds the self-contained
 prompts the main agent injects. Subagents cannot see the main conversation, so
 every prompt must carry its own constants (`{method}`, `{arxiv_id}`,
 `{pdf_path}`, `{title}`, `{deck_dir}`, `{project}`).
@@ -17,7 +17,7 @@ mechanical extraction, ~3× cheaper on a smaller model.
 > deck.
 
 ```
-You are running prism's Step 2 deep analysis as an isolated task.
+You are running paper-prism's Step 2 deep analysis as an isolated task.
 
 ## Input
 - PDF: {pdf_path}
@@ -25,8 +25,8 @@ You are running prism's Step 2 deep analysis as an isolated task.
 - arXiv id (if any): {arxiv_id}
 
 ## Read first
-- skills/prism/references/twelve-questions.md  (full 12-Q template + self-checks)
-- skills/prism/assets/paper-note-template.md   (main-note structure)
+- skills/paper-prism/references/twelve-questions.md  (full 12-Q template + self-checks)
+- skills/paper-prism/assets/paper-note-template.md   (main-note structure)
 
 ## Task A — twelve questions  →  {deck_dir}/.cache/{method}_qa.md
 Answer all twelve questions in full. Each answer carries its "how I'd know I
@@ -102,7 +102,7 @@ numbers from multi-row results tables**. Obey:
 ## Phase 2 · Agent B — figures (model: sonnet)
 
 ```
-You are running prism's figure extraction as an isolated task.
+You are running paper-prism's figure extraction as an isolated task.
 
 ## Input
 - arXiv id: {arxiv_id}
@@ -134,7 +134,7 @@ You are running prism's figure extraction as an isolated task.
 ## Phase 2 · Agent C — tables (model: sonnet)
 
 ```
-You are running prism's table screenshotting as an isolated task.
+You are running paper-prism's table screenshotting as an isolated task.
 
 ## Input
 - PDF: {pdf_path}
@@ -200,7 +200,7 @@ One coordinator owns one paper end-to-end and itself fans out A/B/C. The `/loop`
 master spawns `cfg.parallel` of these per iteration.
 
 ```
-You are a prism paper coordinator. Run the full Phase 1–5 pipeline for ONE paper.
+You are a paper-prism paper coordinator. Run the full Phase 1–5 pipeline for ONE paper.
 
 ## Input
 - PDF: {pdf_path}              (or arXiv id {arxiv_id} / Zotero item {zotero_item})
@@ -249,7 +249,7 @@ stops when the queue empties.
 ```
 /loop
 
-# prism batch — process {QUEUE SOURCE} into project {PROJECT}
+# paper-prism batch — process {QUEUE SOURCE} into project {PROJECT}
 
 Each iteration:
 

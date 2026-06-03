@@ -1,18 +1,18 @@
-# prism architecture
+# paper-prism architecture
 
-This document explains how prism turns a paper into a knowledge package, with
+This document explains how paper-prism turns a paper into a knowledge package, with
 emphasis on the parts that are non-obvious: the five-phase slide pipeline, the
 3-way subagent fan-out and *why it is split across model tiers*, and the batch
 layer that runs the same pipeline over a hundred papers.
 
-If you only want to *use* prism, read `SKILL.md`. This document is for someone
+If you only want to *use* paper-prism, read `SKILL.md`. This document is for someone
 deciding whether the design is sound, or who needs to extend it.
 
 ---
 
 ## The two flows are one pipeline
 
-prism has a single-paper flow and a batch flow, and they are deliberately the
+paper-prism has a single-paper flow and a batch flow, and they are deliberately the
 same code path. The batch layer does not re-implement reading or rendering; it
 just feeds the per-paper pipeline a longer queue and supervises it. Everything
 below describes the per-paper pipeline first, then the thin batch wrapper on
@@ -30,7 +30,7 @@ removed.
 ## The five phases
 
 ```
-                          prism slide-package pipeline (per paper)
+                          paper-prism slide-package pipeline (per paper)
 
  ┌──────────────────────────────────────────────────────────────────────────┐
  │ PHASE 1 · SETUP                                              serial · <10s │
@@ -200,7 +200,7 @@ that are safe to re-run on every pass:
 - `inject_resources_block(note, …)` — inserts or refreshes the resources block
   at the top of the note. Critically, it replaces only from the heading up to
   (but not into) the next `#`/`##` heading, and bails out entirely if there is
-  no following heading. That guard is what lets prism refresh links on a note a
+  no following heading. That guard is what lets paper-prism refresh links on a note a
   human has been hand-editing **without ever swallowing their prose**.
 - `append_to_slides_moc(slides_moc_path(cfg), …)` — adds or updates this paper's
   row in the global `Slide Library.md`, matched by `[[method_name]]` and updated
@@ -305,7 +305,7 @@ always safe.
 Failures are logged and never block. A coordinator that fails appends to
 `/tmp/prism_errors.log`; successes append to `/tmp/prism_progress.log`; the next
 `/loop` iteration proceeds regardless. One unparseable PDF or one paper with no
-arXiv HTML cannot stall a 100-paper run. The cost of this choice — and prism
+arXiv HTML cannot stall a 100-paper run. The cost of this choice — and paper-prism
 accepts it knowingly — is that batches complete with partial coverage by design:
 you finish the run, then read the error log and re-drive the stragglers (often
 the ones that hit the "ask the user" rung of method-name extraction, or whose
@@ -315,7 +315,7 @@ figures were vector-only).
 
 ## When NOT to parallelize
 
-Parallelism has overhead and failure modes; prism is explicit about when to
+Parallelism has overhead and failure modes; paper-prism is explicit about when to
 turn it off:
 
 - **`arxiv_id` is unresolved.** Phase 1 cannot finalize the constants the
@@ -337,10 +337,10 @@ simpler and the parallel speedup does not pay for itself.
 
 ## Where the pieces live
 
-- Pipeline phases and triggers — `skills/prism/SKILL.md` (Step 4-bis)
+- Pipeline phases and triggers — `skills/paper-prism/SKILL.md` (Step 4-bis)
 - Subagent A/B/C prompts + `/loop` master + batch coordinator —
-  `skills/prism/references/subagent-prompts.md`
+  `skills/paper-prism/references/subagent-prompts.md`
 - Deterministic building blocks (render / crop / figures / marp / the three
-  binders / queue parsing) — `skills/prism/assets/prism_helpers.py`
+  binders / queue parsing) — `skills/paper-prism/assets/prism_helpers.py`
 - Config, model tiers, i18n labels, derived paths —
-  `skills/prism/assets/prism_config.py`
+  `skills/paper-prism/assets/prism_config.py`

@@ -1,14 +1,14 @@
-"""prism · configuration and i18n labels.
+"""paper-prism · configuration and i18n labels.
 
 A single place that resolves *where things live* (vault, Zotero, output
 folders) and *what headings look like* (English or Chinese), so the rest of
-prism never hard-codes a personal path or a language.
+paper-prism never hard-codes a personal path or a language.
 
 Config resolution order (first hit wins):
     1. $PRISM_CONFIG                     (explicit path to a JSON file)
     2. ./config.json                     (next to this module)
-    3. ~/.config/prism/config.json       (XDG-style user config)
-    4. built-in DEFAULTS                  (so prism still imports with no config)
+    3. ~/.config/paper-prism/config.json       (XDG-style user config)
+    4. built-in DEFAULTS                  (so paper-prism still imports with no config)
 
 Every value can be overridden in the JSON file. `~` is expanded in all paths.
 
@@ -46,7 +46,7 @@ def safe_name(name: str) -> str:
     return s or "untitled"
 
 # ---------------------------------------------------------------------------
-# Defaults — prism imports and runs even with no config file present.
+# Defaults — paper-prism imports and runs even with no config file present.
 # ---------------------------------------------------------------------------
 DEFAULTS: dict[str, Any] = {
     # Where notes live
@@ -97,7 +97,7 @@ LABELS_EN: dict[str, str] = {
     "untriaged_folder": "_inbox",
     # Global slide library MOC
     "slides_moc_title": "# Slide Library",
-    "slides_moc_note": "> Auto-maintained by prism after each run.",
+    "slides_moc_note": "> Auto-maintained by paper-prism after each run.",
     "slides_moc_columns": "| Paper | Topic | Venue · Year | Preview |",
     # Project MOC reading-queue table
     "project_queue_columns": (
@@ -120,7 +120,7 @@ LABELS_ZH: dict[str, str] = {
     "todo": "{待补}",
     "untriaged_folder": "_待整理",
     "slides_moc_title": "# 幻灯片库",
-    "slides_moc_note": "> 自动维护：prism 每篇处理完成后追加 / 更新。",
+    "slides_moc_note": "> 自动维护：paper-prism 每篇处理完成后追加 / 更新。",
     "slides_moc_columns": "| 论文 | 主题 | Venue · Year | 幻灯预览 |",
     "project_queue_columns": (
         "| # | 论文 | 方法 | 定位分类 | Venue · Year | 状态 | 跟进 | 与项目的关系 |"
@@ -140,7 +140,7 @@ def _config_search_paths() -> list[Path]:
     if env:
         paths.append(Path(env).expanduser())
     paths.append(here / "config.json")
-    paths.append(Path("~/.config/prism/config.json").expanduser())
+    paths.append(Path("~/.config/paper-prism/config.json").expanduser())
     return paths
 
 

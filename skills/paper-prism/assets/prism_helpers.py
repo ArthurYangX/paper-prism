@@ -1,6 +1,6 @@
-"""prism · pipeline helper functions.
+"""paper-prism · pipeline helper functions.
 
-These are the deterministic, file-touching building blocks the prism skill
+These are the deterministic, file-touching building blocks the paper-prism skill
 calls during Phase 2 (extraction) and Phase 4 (render + bind). Keeping them
 in Python — rather than asking the model to hand-roll regex each run — is what
 makes batch processing reproducible and idempotent.
@@ -44,8 +44,8 @@ from prism_config import load_config, get_labels, safe_name, __version__  # noqa
 
 # Sentinels that delimit the auto-managed resources block inside a paper note.
 # Refreshing replaces strictly between these — never touching user prose.
-_RES_START = "<!-- prism:resources:start -->"
-_RES_END = "<!-- prism:resources:end -->"
+_RES_START = "<!-- paper-prism:resources:start -->"
+_RES_END = "<!-- paper-prism:resources:end -->"
 
 # arXiv id shape (new YYMM.NNNNN[vN] + old archive/7digits) — validated before
 # it is ever interpolated into a URL.
@@ -72,7 +72,7 @@ def _is_allowed_fig_url(url: str) -> bool:
 
 def _http_get(url: str, timeout: int = 30, retries: int = 2) -> bytes:
     """GET bytes with a small retry for transient arXiv hiccups."""
-    req = urllib.request.Request(url, headers={"User-Agent": f"prism/{__version__}"})
+    req = urllib.request.Request(url, headers={"User-Agent": f"paper-prism/{__version__}"})
     last: Exception | None = None
     for _ in range(retries + 1):
         try:
@@ -268,7 +268,7 @@ def inject_resources_block(
 ) -> None:
     """Insert or refresh the resources block at the top of a paper note.
 
-    The block is delimited by `<!-- prism:resources:start/end -->` sentinels, so a
+    The block is delimited by `<!-- paper-prism:resources:start/end -->` sentinels, so a
     refresh replaces *strictly between them* and can never swallow user prose
     (e.g. a metadata table the user filled in below the links). Idempotent and
     safe to re-run across a batch / after a crash. If the note is missing and
@@ -423,7 +423,7 @@ def bootstrap_project(project: str, cfg: dict[str, Any] | None = None) -> str:
         f"---\ntype: project-moc\nproject: {project}\n---\n\n"
         f"# 00 {project}\n\n"
         f"## Reading Queue\n\n"
-        f"> Auto-maintained by prism. Status: ✅ done / ◐ reading / ⏳ queued / ❌ dropped\n\n"
+        f"> Auto-maintained by paper-prism. Status: ✅ done / ◐ reading / ⏳ queued / ❌ dropped\n\n"
         f"{cols}\n{sep}\n"
     )
     return str(moc)
@@ -502,7 +502,7 @@ def parse_paper_queue(yaml_path: str) -> dict:
     {project, parallel, notes_strategy, papers:[...]}.
 
     Uses PyYAML if available; otherwise a tiny built-in parser covers the
-    documented subset (flat scalars under `papers:` list items) so prism works
+    documented subset (flat scalars under `papers:` list items) so paper-prism works
     with a stock Python.
     """
     text = Path(yaml_path).expanduser().read_text()

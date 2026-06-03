@@ -6,7 +6,7 @@
 > [!important] Quote arXiv IDs
 > **arXiv IDs MUST be quoted strings** — e.g. `arxiv: "2312.00752"`, `arxiv_id: "2312.00752"`.
 > Unquoted, YAML parses `2312.00752` as a **float**, which loses precision and
-> corrupts the ID. prism coerces these fields back to strings defensively, but
+> corrupts the ID. paper-prism coerces these fields back to strings defensively, but
 > **quoting is the documented contract** — always quote them in your queue files.
 
 ## Full field set

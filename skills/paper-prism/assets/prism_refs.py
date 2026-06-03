@@ -1,7 +1,7 @@
-"""prism · reference & .bib import (Mode 6).
+"""paper-prism · reference & .bib import (Mode 6).
 
 Turn a paper's bibliography — a LaTeX `.bib` file, or the reference section of a
-PDF — into a prism queue, so you can say "process this paper's references" or
+PDF — into a paper-prism queue, so you can say "process this paper's references" or
 "batch from refs.bib" and read a whole citation neighbourhood.
 
 Capabilities:
@@ -9,7 +9,7 @@ Capabilities:
     parse_references_from_text(t)   a PDF's References section → entries
     extract_arxiv_ids(text)         all arXiv ids in free text (new + old style)
     extract_dois(text)              all DOIs in free text
-    refs_to_queue(entries, project) entries → runnable prism queue specs
+    refs_to_queue(entries, project) entries → runnable paper-prism queue specs
 
 Each entry is a dict: {key?, title, authors?, year?, arxiv?, doi?, url?}.
 refs_to_queue maps arXiv-bearing entries to `arxiv:` queue items and the rest to
@@ -17,9 +17,9 @@ refs_to_queue maps arXiv-bearing entries to `arxiv:` queue items and the rest to
 queue-format.md). Optional PyYAML is used to emit YAML; otherwise JSON.
 
 It also ingests **discovery sources** (a daily digest, a topic search, any
-recommender): prism doesn't scrape or score — that stays in separate upstream
+recommender): paper-prism doesn't scrape or score — that stays in separate upstream
 skills (daily-papers, research-lit, semantic-scholar, arxiv). A discovery source
-just emits a JSON list of {title, arxiv?, doi?, score?, why?} and prism turns the
+just emits a JSON list of {title, arxiv?, doi?, score?, why?} and paper-prism turns the
 keepers into a queue.
 
 CLI:
@@ -289,7 +289,7 @@ def _guess_title(chunk: str) -> str:
 # ---------------------------------------------------------------------------
 def refs_to_queue(entries: list[dict], project: str = "Refs",
                   parallel: int = 4, only_arxiv: bool = False) -> dict:
-    """entries → a prism queue dict. arXiv-bearing → `arxiv:`; else `zotero:`
+    """entries → a paper-prism queue dict. arXiv-bearing → `arxiv:`; else `zotero:`
     (title search). Entries with neither an id nor a usable title are dropped."""
     papers, dropped = [], 0
     for i, e in enumerate(entries, 1):
@@ -310,8 +310,8 @@ def refs_to_queue(entries: list[dict], project: str = "Refs",
 # ---------------------------------------------------------------------------
 # Discovery sources  (daily digest / topic search / any recommender → queue)
 # ---------------------------------------------------------------------------
-# prism does NOT scrape or score — those stay in separate upstream skills
-# (daily-papers, research-lit, semantic-scholar, arxiv, ...). prism only ingests
+# paper-prism does NOT scrape or score — those stay in separate upstream skills
+# (daily-papers, research-lit, semantic-scholar, arxiv, ...). paper-prism only ingests
 # their output. The contract: a discovery source emits a JSON list of records,
 # each carrying at least a title and/or an arXiv id, optionally a score and a
 # one-line reason. Field names are matched leniently below.
@@ -391,7 +391,7 @@ def discovery_to_queue(
     top_k: int | None = None,
     min_score: float | None = None,
 ) -> dict:
-    """Recommender items → a prism queue. Filters by min_score, sorts by score
+    """Recommender items → a paper-prism queue. Filters by min_score, sorts by score
     (desc), takes top_k. score → priority (P1/P2/P3), why/tldr → relevance.
     arXiv-bearing items become `arxiv:` queue entries; title-only → `zotero:`."""
     items = [i for i in items

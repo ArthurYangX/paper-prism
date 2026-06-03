@@ -1,12 +1,12 @@
 # Changelog
 
-All notable changes to prism are documented here. The format is based on
+All notable changes to paper-prism are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.1.0] - 2026-06-03
 
-First public release. prism is a major rework of the `paper-reader` skill by
+First public release. paper-prism is a major rework of the `paper-reader` skill by
 huangkiki (from [dailypaper-skills](https://github.com/huangkiki/dailypaper-skills),
 Apache-2.0 — see [NOTICE](NOTICE)); the items below are what this release adds on
 top of, or substantially reworks from, that base.
@@ -34,11 +34,11 @@ top of, or substantially reworks from, that base.
   bibliography (a LaTeX `.bib`, or a PDF's References section) into a queue:
   zero-dependency BibTeX parser, robust arXiv-id/DOI extraction (new + old id
   styles), and a prose-vs-author-list title heuristic for PDF references.
-- **Discovery sources (Mode 7)** — prism ingests the output of *separate* upstream
+- **Discovery sources (Mode 7)** — paper-prism ingests the output of *separate* upstream
   discovery skills (a daily digest, a topic search, Semantic Scholar, arXiv) via a
   lenient JSON contract `{title, arxiv?, doi?, score?, why?}`; `load_discovery` +
   `discovery_to_queue` sort by score, take the top-K, and map score→priority /
-  why→relevance. prism stays the deep-processing backend and does not scrape or
+  why→relevance. paper-prism stays the deep-processing backend and does not scrape or
   score itself.
 - **Checkpoint & resume (断点重连)** via a `/loop` master prompt and
   `prism_state.py`: a per-project state file (atomic writes) + a per-paper durable
@@ -51,7 +51,7 @@ top of, or substantially reworks from, that base.
   alias merging so one method never spawns three concept files.
 - **Config-driven i18n** — `lang: en | zh` flips every generated heading, with
   per-label overrides; config resolves `$PRISM_CONFIG` → local `config.json` →
-  `~/.config/prism/config.json` → built-in defaults.
+  `~/.config/paper-prism/config.json` → built-in defaults.
 - **Stdlib-first helper library** (`prism_helpers.py`, `prism_config.py`) for
   PDF rendering, PIL cropping, arXiv figure download, Marp rendering, the binding
   writers, and the queue parsers — optional deps lazily imported.
@@ -64,7 +64,7 @@ top of, or substantially reworks from, that base.
 ### Security & robustness (pre-release hardening from a parallel review swarm)
 
 - **No-data-loss resources block** — the auto-managed links block is now delimited
-  by `<!-- prism:resources:start/end -->` sentinels and refreshed strictly between
+  by `<!-- paper-prism:resources:start/end -->` sentinels and refreshed strictly between
   them, so a re-bind can never delete a metadata table or prose a user wrote below
   the links (previously a greedy regex could). Legacy blocks migrate safely.
 - **Path-traversal guard** — `safe_name()` sanitises any paper-derived
@@ -84,4 +84,4 @@ top of, or substantially reworks from, that base.
   stricter old-style arXiv-id matching, quote-aware mini-YAML comments, and a
   fixed `zotero.search` ordering bug found by the new fixture.
 
-[0.1.0]: https://github.com/yangjc27/prism/releases/tag/v0.1.0
+[0.1.0]: https://github.com/ArthurYangX/paper-prism/releases/tag/v0.1.0

@@ -1,6 +1,6 @@
-# prism design notes
+# paper-prism design notes
 
-The rationale behind the choices that make prism different from "paste a PDF and
+The rationale behind the choices that make paper-prism different from "paste a PDF and
 ask for a summary." Each section is honest about *why* — including the costs.
 If you disagree with a decision, this is where the argument is.
 
@@ -9,7 +9,7 @@ If you disagree with a decision, this is where the argument is.
 ## Why twelve questions with self-checks
 
 The design target is not a summary. It is **unaided re-explanation**: after
-prism is done, you should be able to put the paper down and explain it to a
+paper-prism is done, you should be able to put the paper down and explain it to a
 colleague — its problem, its core idea, why its math is shaped that way, where
 its numbers come from, where it breaks — without looking back. A summary
 optimizes for "I read something about this." The twelve questions optimize for
@@ -27,7 +27,7 @@ Second, the questions are written to resist the specific ways LLM summaries chea
 The sharpest example is the **Q3 insight-not-module-list rule**. Asked for a
 paper's core idea, a model will happily list "we add a gating block, a selective
 scan, and a hardware-aware kernel" — which is the *architecture*, not the
-*insight*. prism forbids this: Q3 must be one or two sentences of intuition
+*insight*. paper-prism forbids this: Q3 must be one or two sentences of intuition
 naming the regularity, structure, or assumption the authors exploited to make
 the method work, such that you can explain *why performance improves*, not just
 recite component names. (See the worked micro-example in
@@ -37,7 +37,7 @@ insufficient" when even inference isn't supported), and the analyst reads
 intro + method + experiments + conclusion rather than paraphrasing the abstract.
 
 The cost of this framework is real: twelve questions with self-checks is slower
-and more tokens than "TL;DR this." prism's answer is the batch *condensed*
+and more tokens than "TL;DR this." paper-prism's answer is the batch *condensed*
 mode — Q1 + Q3 + Q4-brief + Q9 + Q12, the five load-bearing questions — which
 scales to a hundred papers while still refusing to skip the analysis step
 entirely. The condensed pass is the floor, not an off switch.
@@ -47,7 +47,7 @@ entirely. The condensed pass is the floor, not an off switch.
 ## The table-screenshot iron rule
 
 Re-typing a paper's tables into markdown is, in our experience, the single most
-common bug in AI-generated paper notes — so prism makes it a hard rule: **every
+common bug in AI-generated paper notes — so paper-prism makes it a hard rule: **every
 table from the paper is embedded as a screenshot of the original; it is never
 re-drawn as a markdown `| ... |`.**
 
@@ -79,7 +79,7 @@ typing the paper's tables — it leaves a `<!-- TABLE_N_PLACEHOLDER -->` for the
 table agent's screenshot — so the rule holds even inside the parallel fan-out.
 
 The honest cost: screenshots are heavier than text, don't reflow, and aren't
-searchable or copy-pasteable. prism takes that trade because a faithful,
+searchable or copy-pasteable. paper-prism takes that trade because a faithful,
 uneditable table beats a lightweight, lossy one every time for a study artifact.
 
 ---
@@ -118,8 +118,8 @@ Why co-location beats scattered markdown:
   both the local package *and* the global views.
 - **Re-runs protect hand-written notes.** This is the subtle, important one. The
   binders are idempotent and surgical: `inject_resources_block` wraps the links in
-  `<!-- prism:resources:start/end -->` sentinels and refreshes *strictly between
-  them*, so re-running prism updates the links at the top and **never touches your
+  `<!-- paper-prism:resources:start/end -->` sentinels and refreshes *strictly between
+  them*, so re-running paper-prism updates the links at the top and **never touches your
   writing** — not even a metadata table or prose placed directly below the block.
   (An earlier heading-to-next-`##` heuristic could swallow whatever followed the
   bullet list; the sentinels make that class of data loss impossible, and legacy
@@ -128,7 +128,7 @@ Why co-location beats scattered markdown:
   twice and you get one row and one resources block, not duplicates.
 
 The cost: this is more machinery than dropping a single `.md` in a folder, and
-it assumes Obsidian (or at least `[[wikilink]]` + `![[embed]]` semantics). prism
+it assumes Obsidian (or at least `[[wikilink]]` + `![[embed]]` semantics). paper-prism
 accepts that coupling because the payoff — a navigable, self-healing, re-runnable
 knowledge base instead of a pile of orphan files — is the entire point of the
 tool. Mode B ("local" / "next to the PDF") exists as the escape hatch when you
@@ -139,7 +139,7 @@ copy, no note binding, and no MOC updates.
 
 ## Concept budget + alias dedup
 
-prism wraps each technical term in `[[concept]]` at first mention, which builds a
+paper-prism wraps each technical term in `[[concept]]` at first mention, which builds a
 concept graph across your library. Done naively, this explodes. A single paper
 easily mentions twenty linkable terms; a hundred papers is then on the order of
 **100 × 20 = 2000 wikilinks**, most pointing at notes that were never created —
@@ -151,12 +151,12 @@ Two rules keep it sane. First, a **concept budget**: at most `cfg.concept_budget
 downgraded to bold and listed under "Concepts not yet created" rather than
 minting more dangling links — so each paper contributes a small number of
 *real*, fleshed-out concept notes instead of a swarm of stubs. Second, **alias
-dedup**: before creating a concept, prism checks whether it already exists under
+dedup**: before creating a concept, paper-prism checks whether it already exists under
 a different name, so `Mamba` / `Mamba SSM` / `Selective SSM` collapse to one note
 with aliases instead of becoming three competing files that fragment the graph.
 
 The cost is that the graph is intentionally *sparse* — not every term you might
-want to click is linked. prism bets that a smaller graph of solid nodes is far
+want to click is linked. paper-prism bets that a smaller graph of solid nodes is far
 more useful than a dense graph of broken ones, especially at the scale where the
 tool earns its keep. The budget and dedup rules live in
 `references/concept-categories.md`.
@@ -171,7 +171,7 @@ tool is treating `keyword` as the method name. Often it isn't: `continual`,
 `multimodal`, `selfsupervised` are *topic* words, not method names. Name a note
 `Continual.md` and you've mislabeled the paper and poisoned every link to it.
 
-prism resolves identity with a **four-tier confidence ladder**, acting only on
+paper-prism resolves identity with a **four-tier confidence ladder**, acting only on
 evidence as strong as the action:
 
 1. **High — use directly.** A Zotero title of the form `XXX: ...`, an abstract
@@ -188,7 +188,7 @@ evidence as strong as the action:
 Names are normalized to ASCII (internal caps and hyphens are fine — `HyperKD`,
 `ViT-S`; no spaces, CJK, or Greek), and a collision with an existing note of a
 *different* `arxiv_id` triggers a `{method}-{year}.md` rename plus a cross-link.
-The ladder is deliberately conservative: prism would rather ask once, or fall
+The ladder is deliberately conservative: paper-prism would rather ask once, or fall
 back to an honest `AuthorYear` stub flagged for review, than confidently invent
 a wrong method name — because a wrong name is the kind of error that quietly
 corrupts an entire library's graph.
@@ -197,7 +197,7 @@ corrupts an entire library's graph.
 
 ## i18n by labels
 
-prism separates *what it says* from *what language it says it in*. All generated
+paper-prism separates *what it says* from *what language it says it in*. All generated
 headings — the resources block, the TL;DR and contributions headings, the MOC
 column titles — come from a label set in `prism_config.py`, switchable between
 `"en"` and `"zh"` via a single `lang` config key (with per-label overrides under
@@ -210,7 +210,7 @@ optional `cfg` and look their headings up rather than hard-coding strings — wh
 is also what lets a single codebase produce either experience without forking.
 
 **Triggers, by contrast, stay bilingual** regardless of output language. The
-phrases that *invoke* prism — "read paper" and "读一下", "make a deck" and
+phrases that *invoke* paper-prism — "read paper" and "读一下", "make a deck" and
 "出 PPT" — are matched in both English and Chinese at all times, because a user
 fluently code-switches between the two even when they want output in just one.
 The asymmetry is intentional: output language is a *preference* (pick one),
@@ -222,7 +222,7 @@ exactly when a bilingual user reaches for it in their other language.
 
 ## Optional layout backend (MinerU) — roadmap, not default
 
-prism's figure/table extraction is deliberately low-dependency: `pdftoppm`
+paper-prism's figure/table extraction is deliberately low-dependency: `pdftoppm`
 renders pages, the analyst eyeballs each bounding box, and `crop_region` (PIL)
 cuts it out, with a Read → verify → re-crop loop to catch truncation. The whole
 path needs only poppler + Pillow, so it clones and runs anywhere.
@@ -235,11 +235,11 @@ figure-dense papers, where hand-locating a dozen boxes is the slow part.
 It stays a **roadmap item, not a default**, for three reasons:
 
 1. **Naive use would violate the iron rule.** MinerU's headline output turns
-   tables into HTML/markdown — exactly what prism forbids. The only sanctioned use
+   tables into HTML/markdown — exactly what paper-prism forbids. The only sanctioned use
    is to take its table *bounding box* and still screenshot the region; its
    table-to-text output is discarded.
 2. **It is heavy.** MinerU pulls in PyTorch and multi-gigabyte layout/OCR/formula
-   models. As a hard dependency it would destroy prism's "clone and run" property,
+   models. As a hard dependency it would destroy paper-prism's "clone and run" property,
    so it can only ever be an **optional backend** — lazily imported, used when
    present, absent otherwise — never on the default path.
 3. **Vector figures still need verification.** Many architecture diagrams are

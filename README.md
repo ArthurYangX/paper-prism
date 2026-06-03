@@ -1,4 +1,4 @@
-# prism
+# paper-prism
 
 > **One paper, refracted.** A Claude Code skill that turns an academic paper — or a whole library — into a structured Obsidian knowledge package: a deep main note, a slide deck (PDF + editable PPTX), and a linked concept graph.
 
@@ -13,7 +13,7 @@
 
 ## What it does
 
-Point prism at a PDF, an arXiv link, or a Zotero collection. It produces three bound artifacts:
+Point paper-prism at a PDF, an arXiv link, or a Zotero collection. It produces three bound artifacts:
 
 - **A main note** — the deepest artifact. A twelve-question deep read, formula triplets (name / `$$LaTeX$$` / meaning / symbol table), every figure and table explained, every technical term wrapped in an inline `[[concept]]` link.
 - **A slide deck** — a ~30-page Marp deck as **PDF + editable PPTX**, one page per figure/table with a "read-key" box. The visual condensation of the note, not its index.
@@ -54,7 +54,7 @@ A single paper in roughly 8 minutes, or your whole Zotero collection overnight �
 
 ## See it in action
 
-Two public papers, refracted end-to-end into full prism packages — main note · slide deck · figure/table screenshots · linked MOCs — live in [`examples/showcase/`](examples/showcase/run-attention/):
+Two public papers, refracted end-to-end into full paper-prism packages — main note · slide deck · figure/table screenshots · linked MOCs — live in [`examples/showcase/`](examples/showcase/run-attention/):
 
 | Paper | Note | Deck | Produced by |
 |-------|------|------|-------------|
@@ -70,11 +70,11 @@ Both share one `Showcase` reading-queue MOC and the global Slide Library — ind
 
 ---
 
-## Why prism?
+## Why paper-prism?
 
-The single-paper experience is nice. The reason prism exists is what happens **at scale** — turning 100 papers into a knowledge base instead of 100 disconnected dumps.
+The single-paper experience is nice. The reason paper-prism exists is what happens **at scale** — turning 100 papers into a knowledge base instead of 100 disconnected dumps.
 
-| At scale, the thing that bites you | What prism does |
+| At scale, the thing that bites you | What paper-prism does |
 |---|---|
 | All-Opus reading is slow and expensive per paper | **Parallel subagent fan-out** — analysis (Opus) + figures (Sonnet) + tables (Sonnet) run as three concurrent agents; ~8 min/paper, ~3× cheaper than all-Opus (50 papers ≈ Opus×50 + Sonnet×100). |
 | 100 papers naively → ~2000 half-defined `[[wikilinks]]` and a broken graph | **Concept budget** (default ≤8 new concepts/paper) + **alias dedup**, so `Mamba` / `Mamba SSM` / `Selective SSM` never become three files; extras downgrade to bold. |
@@ -83,13 +83,13 @@ The single-paper experience is nice. The reason prism exists is what happens **a
 | An AI that re-types result tables corrupts the numbers | **The table-screenshot iron rule** — every main-result and ablation table is embedded as a *screenshot of the original*, never re-drawn as markdown. Re-typing corrupts numbers, bold, arrows, and merged cells. |
 | Filenames like `de2021continual.pdf` get a garbage method name | **Method-name extraction** by confidence (Zotero title → "we propose X" → repeated acronym → ask), so batches name notes correctly instead of calling a paper `Continual`. |
 
-Everything above is implemented in `skills/prism/SKILL.md` and the Python helpers — not aspirational.
+Everything above is implemented in `skills/paper-prism/SKILL.md` and the Python helpers — not aspirational.
 
 ---
 
 ## The twelve-question framework
 
-prism never jumps straight to output. Before any note or deck, it answers **twelve questions** about the paper — and every answer carries a **"how I'd know I understood it" self-check**. That self-check is the whole point: it is what turns a summary into something *you can re-explain unaided*, rather than a fluent paraphrase of the abstract.
+paper-prism never jumps straight to output. Before any note or deck, it answers **twelve questions** about the paper — and every answer carries a **"how I'd know I understood it" self-check**. That self-check is the whole point: it is what turns a summary into something *you can re-explain unaided*, rather than a fluent paraphrase of the abstract.
 
 | # | Question | # | Question |
 |---|---|---|---|
@@ -100,13 +100,13 @@ prism never jumps straight to output. Before any note or deck, it answers **twel
 | Q5 | Module roles (what breaks without each) | Q11 | How to improve? |
 | Q6 | What do the equations *do*? | Q12 | Explain it in 2–3 sentences |
 
-In batch mode prism runs a condensed five-question pass (Q1 + Q3 + Q4-brief + Q9 + Q12) per paper and expands on request — but it **never skips** the framework. Full template, self-check wording, and the passage-intent follow-up mode live in `skills/prism/references/twelve-questions.md`.
+In batch mode paper-prism runs a condensed five-question pass (Q1 + Q3 + Q4-brief + Q9 + Q12) per paper and expands on request — but it **never skips** the framework. Full template, self-check wording, and the passage-intent follow-up mode live in `skills/paper-prism/references/twelve-questions.md`.
 
 ---
 
 ## Quick start
 
-These are things you **say to Claude Code** in a session where the prism skill is installed — not shell commands.
+These are things you **say to Claude Code** in a session where the paper-prism skill is installed — not shell commands.
 
 **Single paper → note (default), or the full deck package:**
 
@@ -114,7 +114,7 @@ These are things you **say to Claude Code** in a session where the prism skill i
 read paper.pdf and make a deck
 ```
 
-> Default decision tree: "read X" gives you a full note, no slides. "make a deck / 出 PPT" gives you the full three-piece package. Ambiguous? prism asks once, then remembers.
+> Default decision tree: "read X" gives you a full note, no slides. "make a deck / 出 PPT" gives you the full three-piece package. Ambiguous? paper-prism asks once, then remembers.
 
 **A whole Zotero collection:**
 
@@ -150,7 +150,7 @@ papers:
     method_name: MyMethod
 ```
 
-Each paper needs exactly one of `path` / `arxiv` / `zotero`. Full spec: `skills/prism/assets/queue-format.md`.
+Each paper needs exactly one of `path` / `arxiv` / `zotero`. Full spec: `skills/paper-prism/assets/queue-format.md`.
 
 ### Seven input modes — same pipeline, different queue source
 
@@ -165,15 +165,15 @@ Each paper needs exactly one of `path` / `arxiv` / `zotero`. Full spec: `skills/
 | 7 · Discovery source | `today's papers → deck the top 5` · `batch from digest.json` | a recommender feed (daily digest, topic search, …) |
 
 Modes 1–6 are *you point at papers you have*; **Mode 7 is *a discovery source
-brings papers to you***. prism doesn't scrape or score — that stays in separate
+brings papers to you***. paper-prism doesn't scrape or score — that stays in separate
 upstream skills (a daily-digest, a lit-search, Semantic Scholar, arXiv). They just
-emit a JSON list of `{title, arxiv?, score?, why?}` (or a `.bib`); prism ingests it
-and refracts the keepers, so prism stays a focused deep-processing backend.
+emit a JSON list of `{title, arxiv?, score?, why?}` (or a `.bib`); paper-prism ingests it
+and refracts the keepers, so paper-prism stays a focused deep-processing backend.
 
 ```bash
-python3 skills/prism/assets/prism_refs.py bib  refs.bib            # .bib       → queue
-python3 skills/prism/assets/prism_refs.py pdf  paper.pdf           # PDF refs   → queue
-python3 skills/prism/assets/prism_refs.py discovery digest.json --top 5   # a feed → queue
+python3 skills/paper-prism/assets/prism_refs.py bib  refs.bib            # .bib       → queue
+python3 skills/paper-prism/assets/prism_refs.py pdf  paper.pdf           # PDF refs   → queue
+python3 skills/paper-prism/assets/prism_refs.py discovery digest.json --top 5   # a feed → queue
 ```
 
 ---
@@ -181,14 +181,14 @@ python3 skills/prism/assets/prism_refs.py discovery digest.json --top 5   # a fe
 ## Installation
 
 ```bash
-git clone https://github.com/yangjc27/prism.git
-cd prism
+git clone https://github.com/ArthurYangX/paper-prism.git
+cd paper-prism
 ./install.sh          # symlinks the skill into ~/.claude/skills/ and runs the dependency doctor
-cp skills/prism/assets/config.example.json skills/prism/assets/config.json
+cp skills/paper-prism/assets/config.example.json skills/paper-prism/assets/config.json
 # then edit config.json — at minimum set vault_path
 ```
 
-`install.sh` symlinks `skills/prism/` into `~/.claude/skills/` so Claude Code discovers it, then runs a dependency doctor that checks for the tools below.
+`install.sh` symlinks `skills/paper-prism/` into `~/.claude/skills/` so Claude Code discovers it, then runs a dependency doctor that checks for the tools below.
 
 **Dependencies:**
 
@@ -200,7 +200,7 @@ cp skills/prism/assets/config.example.json skills/prism/assets/config.json
 | *optional* **PyYAML** | nicer YAML queue parsing (a zero-dep mini-parser is built in) | `pip install pyyaml` |
 | *optional* **Zotero** | the Zotero input modes (read-only) | local Zotero install |
 
-The Python helpers are **stdlib-first**: prism imports and runs its config and binding logic with no third-party packages at all. Pillow, Node/Marp, and poppler are only invoked when you actually render a deck.
+The Python helpers are **stdlib-first**: paper-prism imports and runs its config and binding logic with no third-party packages at all. Pillow, Node/Marp, and poppler are only invoked when you actually render a deck.
 
 ---
 
@@ -209,9 +209,9 @@ The Python helpers are **stdlib-first**: prism imports and runs its config and b
 Copy `config.example.json` → `config.json` (gitignored — it holds your private vault path) and edit. Config resolves in this order, first hit wins:
 
 1. `$PRISM_CONFIG` — explicit path to a JSON file
-2. `skills/prism/assets/config.json` — next to the module
-3. `~/.config/prism/config.json` — XDG-style user config
-4. built-in defaults — so prism still imports with no config at all
+2. `skills/paper-prism/assets/config.json` — next to the module
+3. `~/.config/paper-prism/config.json` — XDG-style user config
+4. built-in defaults — so paper-prism still imports with no config at all
 
 Key fields:
 
@@ -227,10 +227,10 @@ Key fields:
 | `lang` | **`en` or `zh`** — language of generated headings | `en` |
 | `labels` | override any individual heading label | `{}` |
 
-**i18n.** prism's generated headings are configurable. Set `"lang": "en"` (default) or `"lang": "zh"` to flip every output heading — "Resources" ↔ "资源", "TL;DR" ↔ "一句话总结", the MOC column names, the inbox folder, and so on — and override any single label under `"labels"`. The skill logic and your prompts stay in whatever language you like; only the *written headings* follow `lang`.
+**i18n.** paper-prism's generated headings are configurable. Set `"lang": "en"` (default) or `"lang": "zh"` to flip every output heading — "Resources" ↔ "资源", "TL;DR" ↔ "一句话总结", the MOC column names, the inbox folder, and so on — and override any single label under `"labels"`. The skill logic and your prompts stay in whatever language you like; only the *written headings* follow `lang`.
 
 ```bash
-python3 skills/prism/assets/prism_config.py   # prints the resolved config + active labels
+python3 skills/paper-prism/assets/prism_config.py   # prints the resolved config + active labels
 ```
 
 ---
@@ -284,9 +284,9 @@ In Obsidian, the deck PDF and the source PDF embed inline at the top of the note
 
 ## Acknowledgments
 
-prism is a major rework of the **`paper-reader`** skill by **[huangkiki](https://github.com/huangkiki)**, from the [**dailypaper-skills**](https://github.com/huangkiki/dailypaper-skills) project, used under **Apache-2.0**. (On the dev machine it was encountered bundled inside the [ARIS](https://github.com/wanshuiyin/Auto-claude-code-research-in-sleep) skill collection.) Full attribution and the Apache-2.0 statement of changes are in [NOTICE](NOTICE).
+paper-prism is a major rework of the **`paper-reader`** skill by **[huangkiki](https://github.com/huangkiki)**, from the [**dailypaper-skills**](https://github.com/huangkiki/dailypaper-skills) project, used under **Apache-2.0**. (On the dev machine it was encountered bundled inside the [ARIS](https://github.com/wanshuiyin/Auto-claude-code-research-in-sleep) skill collection.) Full attribution and the Apache-2.0 statement of changes are in [NOTICE](NOTICE).
 
-| What `paper-reader` provided | What prism adds |
+| What `paper-reader` provided | What paper-prism adds |
 |---|---|
 | Zotero integration patterns | Twelve-question framework with per-answer self-checks |
 | The Obsidian concept-library framework | Plan-C three-piece binding (note + deck + source PDF) |

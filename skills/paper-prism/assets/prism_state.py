@@ -1,7 +1,7 @@
-"""prism · checkpoint / resume state.
+"""paper-prism · checkpoint / resume state.
 
 Batch processing must survive interruptions — a crash, a `/loop` stop, a laptop
-lid. prism keeps two things durable so any re-run picks up exactly where it left
+lid. paper-prism keeps two things durable so any re-run picks up exactly where it left
 off, per paper and per phase:
 
 1. A per-project **state file** (`{project}/.prism_state.json`) recording each
@@ -53,7 +53,7 @@ def _skeleton(project: str) -> dict:
 
 def load_state(project: str, cfg: dict[str, Any] | None = None) -> dict:
     """Load the project state file, or a fresh skeleton if absent / corrupt /
-    written by an incompatible prism version (schema_version mismatch → reset)."""
+    written by an incompatible paper-prism version (schema_version mismatch → reset)."""
     p = state_path(project, cfg)
     if p.is_file():
         try:
@@ -149,7 +149,7 @@ def is_paper_done(deck_dir: str, method: str) -> bool:
     """A paper is done if its slide deck PDF exists and is a real size.
 
     Cheap, filesystem-only check used by the batch dedup pass — no state file
-    needed, so it works even on a vault prism has never tracked.
+    needed, so it works even on a vault paper-prism has never tracked.
     """
     pdf = Path(deck_dir) / f"{method}.slides.pdf"
     return pdf.is_file() and pdf.stat().st_size > _DONE_MIN_PDF_BYTES
