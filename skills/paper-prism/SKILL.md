@@ -413,6 +413,47 @@ exists; `git push` only if `git_push:true` and a remote is set.
 
 ---
 
+## Step 5-bis · Zotero linkback (optional, zero-plugin)
+
+If the paper is in the user's Zotero library, add a one-click `zotero://` link to
+the note's resources block so they can jump to the Zotero item and read its
+**annotations** (annotations live in Zotero's DB, not in the PDF file). **Zero
+plugins, zero Better-BibTeX citekey** — just the stable 8-char item key.
+
+```python
+from zotero import find_item_key
+key = find_item_key(title, collection_id=cid)   # read-only; collection_id optional but recommended; None if not found
+if key:
+    inject_resources_block(note_path, method, zotero_key=key,
+                           arxiv_url=arxiv_url, project=project, cfg=cfg)
+```
+
+This appends `- 📦 Zotero: [Open in Zotero (annotations)](zotero://select/library/items/{key})`.
+
+**Rules:**
+- **Read-only, always.** paper-prism never writes `zotero.sqlite` — `zotero.py` reads a
+  private copy. Any *write* to Zotero (dedup / attach a PDF / create an item) is only
+  ever emitted as a Zotero JS script for the user to run in
+  `Tools > Developer > Run JavaScript` — never applied automatically.
+- **Optional / non-blocking.** Zotero not installed, not running, or the paper not in
+  the library → skip this step. The note + copied PDF + deck are already complete.
+- **Match by normalized title.** `find_item_key` strips LaTeX/punctuation/case; restrict
+  to the project collection when you can (duplicate copies otherwise make a title
+  ambiguous), and prefer the copy that has a PDF attachment / annotations.
+- **Idempotent.** The resources block is sentinel-managed, so re-running refreshes the
+  single `zotero://` line and never duplicates it.
+- **Rejected approaches (do NOT use)** — all evaluated and dropped: Better-BibTeX
+  citekeys + the Zotero-Integration plugin (citekeys are unstable, the plugin errors),
+  Zotero `storage/` absolute paths (the per-item key changes on re-organization, and
+  `![[]]` can't embed outside the vault, and annotations aren't in the file anyway), and
+  annotated-PDF snapshots (they don't pick up new annotations). The stable `items.key`
+  is the one supported path.
+
+**User-side (mention once):** a `zotero://` link needs Zotero running; Obsidian asks once
+to allow opening external links — allow it.
+
+---
+
 ## Step 6 · Concept-library maintenance (every paper)
 
 Scan the note's `[[concept]]` links; for each, reuse if a note (or alias) exists,

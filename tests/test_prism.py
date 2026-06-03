@@ -565,6 +565,13 @@ def test_zotero(tmp):
         check("zotero search", zt.search("Mamba")[0]["item_id"] == 10)
         q = zt.zotero_collection_to_queue(1, recursive=False, project="Z")
         check("zotero→queue", len(q) == 1 and q[0]["zotero_item"] == 10 and q[0]["path"].endswith("mamba.pdf"))
+        # itemKey linkback (read-only) — the basis of the zotero:// resource link
+        check("zotero item_key", zt.item_key(10) == "PAPERKEY")
+        check("zotero find_item_key exact", zt.find_item_key("Mamba: Linear-Time") == "PAPERKEY")
+        check("zotero find_item_key normalized", zt.find_item_key("  mamba:  Linear-Time  ") == "PAPERKEY")
+        check("zotero find_item_key in-collection", zt.find_item_key("Mamba: Linear-Time", collection_id=1) == "PAPERKEY")
+        check("zotero find_item_key miss → None", zt.find_item_key("Some Other Paper") is None)
+        check("zotero find_item_key wrong-collection → None", zt.find_item_key("Mamba: Linear-Time", collection_id=2) is None)
     finally:
         del os.environ["PRISM_CONFIG"]
 

@@ -29,6 +29,7 @@ import argparse
 import atexit
 import json
 import os
+import re
 import shutil
 import sqlite3
 import sys
@@ -226,6 +227,73 @@ def item_info(item_id: int) -> dict:
             )
         }
         return {"item_id": item_id, "title": fields.get("title", "Unknown"), "fields": fields}
+    finally:
+        conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Item key — for zotero:// linkback (read-only)
+# ---------------------------------------------------------------------------
+def _has_table(conn, name: str) -> bool:
+    return conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)
+    ).fetchone() is not None
+
+
+def _norm(s: str) -> str:
+    """Normalize a title for matching: strip LaTeX/braces, drop non-alphanumerics, lowercase.
+
+    This is what makes note-title ↔ Zotero-title matching robust against LaTeX
+    (`S²ENet`), punctuation, and casing — the same idea the spec uses.
+    """
+    s = re.sub(r"\$.*?\$|[{}\\]", "", s or "")
+    return re.sub(r"[^a-z0-9]", "", s.lower())
+
+
+def item_key(item_id: int) -> str | None:
+    """The 8-char Zotero item key for an itemID — used to build zotero:// links."""
+    conn = _connect()
+    try:
+        row = conn.execute("SELECT key FROM items WHERE itemID = ?", (item_id,)).fetchone()
+        return row[0] if row else None
+    finally:
+        conn.close()
+
+
+def find_item_key(title: str, collection_id: int | None = None) -> str | None:
+    """Find a Zotero item key by NORMALIZED-title match (read-only).
+
+    Pass a `collection_id` (recommended) to restrict the match and avoid
+    whole-library ambiguity from duplicate copies; trashed items are excluded.
+    Returns the 8-char key (e.g. `4MQSQNYC`) or None. paper-prism NEVER writes
+    the Zotero DB — this only reads a copy of it. The returned key is stable
+    (it does not change with citekey format or attachment re-organization), which
+    is exactly why the linkback uses it instead of a Better-BibTeX citekey.
+    """
+    target = _norm(title)
+    if not target:
+        return None
+    conn = _connect()
+    try:
+        q = (
+            "SELECT i.key, idv.value FROM items i "
+            "JOIN itemData id ON i.itemID = id.itemID "
+            "JOIN itemDataValues idv ON id.valueID = idv.valueID "
+            "JOIN fields f ON id.fieldID = f.fieldID "
+            "WHERE f.fieldName = 'title' AND i.itemTypeID != 14"
+        )
+        params: list = []
+        if _has_table(conn, "deletedItems"):
+            q += " AND i.itemID NOT IN (SELECT itemID FROM deletedItems)"
+        if collection_id is not None:
+            ids = _child_collections(conn, collection_id)
+            ph = ",".join("?" * len(ids))
+            q += f" AND i.itemID IN (SELECT itemID FROM collectionItems WHERE collectionID IN ({ph}))"
+            params = ids
+        for key, t in conn.execute(q, params).fetchall():
+            if _norm(t) == target:
+                return key
+        return None
     finally:
         conn.close()
 

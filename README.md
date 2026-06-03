@@ -5,7 +5,7 @@
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 ![Claude Code skill](https://img.shields.io/badge/Claude%20Code-skill-8A2BE2)
 ![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)
-![tests 132 passing](https://img.shields.io/badge/tests-132%20passing-brightgreen)
+![tests 138 passing](https://img.shields.io/badge/tests-138%20passing-brightgreen)
 
 **English** · [简体中文](README.zh-CN.md)
 
@@ -224,6 +224,27 @@ python3 skills/paper-prism/assets/prism_config.py   # prints the resolved config
 
 ---
 
+## Zotero linkback (optional)
+
+If a paper is in your Zotero library, paper-prism adds a one-click link to the note's resources block:
+
+```text
+- 📦 Zotero: [Open in Zotero (annotations)](zotero://select/library/items/{key})
+```
+
+Click it → Zotero jumps to the item → open the PDF to see your **annotations** (annotations live in Zotero's database, not in the PDF file).
+
+**Zero plugins, and no configuration beyond two one-time clicks:**
+
+1. **Zotero must be running** when you click the link (the link wakes it up).
+2. The **first** time you click a `zotero://` link, Obsidian asks whether to allow opening external links — **allow it once** and it won't ask again.
+
+That's it. paper-prism matches the note title to your Zotero item by *normalized title* (**read-only** — it never modifies your library) and uses the stable 8-char item key, so the link survives citekey changes and attachment re-organization.
+
+> **You do _not_ need** the Zotero-Integration plugin, Better BibTeX, or PDF Utility. Those sync annotation *text* into notes (a different feature) and depend on fragile citekeys — paper-prism deliberately avoids them. Wanting annotation text pulled into Obsidian is a separate plugin setup, outside paper-prism.
+
+---
+
 ## Output layout
 
 **Plan C — three-piece binding.** Mode A (vault, the default): each paper is a self-contained unit, plus a global index.
@@ -282,7 +303,7 @@ In batch mode paper-prism runs a condensed five-question pass (Q1 + Q3 + Q4-brie
 
 ## Project status
 
-**v0.1.0** — works, and has been used on real papers. The note/deck/graph artifacts and the binding are stable; the skill's *internal* prompts, phase wiring, and config keys may still shift as it is hardened. Test suite is **132 checks, zero external dependencies** (`python3 tests/test_prism.py`). See [CHANGELOG.md](CHANGELOG.md).
+**v0.1.0** — works, and has been used on real papers. The note/deck/graph artifacts and the binding are stable; the skill's *internal* prompts, phase wiring, and config keys may still shift as it is hardened. Test suite is **138 checks, zero external dependencies** (`python3 tests/test_prism.py`). See [CHANGELOG.md](CHANGELOG.md).
 
 ---
 

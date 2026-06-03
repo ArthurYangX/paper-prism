@@ -289,7 +289,7 @@ def inject_resources_block(
         f"- {L['label_slides']}: ![[{base}/{method_name}.slides.pdf]]",
     ]
     if zotero_key:
-        lines.append(f"- {L['label_zotero']}: [item](zotero://select/items/{zotero_key})")
+        lines.append(f"- {L['label_zotero']}: [Open in Zotero (annotations)](zotero://select/library/items/{zotero_key})")
     if arxiv_url:
         lines.append(f"- {L['label_arxiv']}: {arxiv_url}")
     if github_url:

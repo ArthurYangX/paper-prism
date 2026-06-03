@@ -4,6 +4,29 @@ All notable changes to paper-prism are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Zotero linkback (optional, zero-plugin)** — `zotero.py` gains `find_item_key` /
+  `item_key`: a **read-only**, normalized-title match (collection-scoped, trashed items
+  excluded) that returns the stable 8-char Zotero item key. The resources block now emits
+  `zotero://select/library/items/{key}`, so one click jumps to the Zotero item and its
+  annotations. No Better-BibTeX, no Zotero-Integration plugin, no `storage/` paths — all
+  evaluated and rejected (unstable citekeys, breakable paths, annotations not in the
+  file). Documented in SKILL.md Step 5-bis and a README "Zotero linkback" section. (+6
+  tests → **138**.)
+- **Two end-to-end showcases** (`examples/showcase/`) — Transformer (coordinator-serial)
+  and Mamba (a real parallel A/B/C subagent fan-out, reconciled by the coordinator); each
+  a full note + 35/39-page deck + figure/table screenshots, both indexed in shared MOCs.
+
+### Changed
+- **Renamed `prism` → `paper-prism`** (brand + command layer): the skill is now invoked
+  as `/paper-prism` (the slash command follows the skill directory name). Python module
+  names (`prism_*.py`), the `PRISM_CONFIG` env var, and all imports are unchanged — no
+  code-level rename. Repo: `github.com/ArthurYangX/paper-prism`.
+- **READMEs restructured install-first** (EN + 简体中文): Install + Quick start moved to
+  the top; the why/how/rationale moved below a divider.
+
 ## [0.1.0] - 2026-06-03
 
 First public release. paper-prism is a major rework of the `paper-reader` skill by
