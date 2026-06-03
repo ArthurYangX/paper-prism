@@ -58,7 +58,7 @@ labels under `"labels"`.
 
 ---
 
-## Step 0-ter · Input modes (5) — **batch-first**
+## Step 0-ter · Input modes (7) — **batch-first**
 
 The pipeline is identical for one paper and a hundred; only the *queue source*
 differs.

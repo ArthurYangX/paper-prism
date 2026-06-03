@@ -52,6 +52,24 @@ A single paper in roughly 8 minutes, or your whole Zotero collection overnight �
 
 ---
 
+## See it in action
+
+Two public papers, refracted end-to-end into full prism packages — main note · slide deck · figure/table screenshots · linked MOCs — live in [`examples/showcase/`](examples/showcase/run-attention/):
+
+| Paper | Note | Deck | Produced by |
+|-------|------|------|-------------|
+| **Transformer** — *Attention Is All You Need* | [Transformer.md](examples/showcase/run-attention/vault/papers/Showcase/Transformer.md) | 35 pages | coordinator-driven (serial) |
+| **Mamba** — *Selective State Spaces* | [Mamba.md](examples/showcase/run-attention/vault/papers/Showcase/Mamba.md) | 39 pages | a real parallel A/B/C subagent fan-out, reconciled by the coordinator |
+
+<p align="center">
+  <img src="examples/showcase/run-attention/preview/02-architecture.png" width="49%" alt="Transformer deck — architecture page">
+  <img src="examples/showcase/run-attention/preview/mamba-03-downstream.png" width="49%" alt="Mamba deck — results page">
+</p>
+
+Both share one `Showcase` reading-queue MOC and the global Slide Library — index accumulation across papers, demonstrated. The rendered PDFs/PPTX are git-ignored to keep the repo light; regenerate each with one `marp` command (see the showcase [README](examples/showcase/run-attention/README.md)).
+
+---
+
 ## Why prism?
 
 The single-paper experience is nice. The reason prism exists is what happens **at scale** — turning 100 papers into a knowledge base instead of 100 disconnected dumps.

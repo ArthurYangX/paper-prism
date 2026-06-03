@@ -54,6 +54,24 @@
 
 ---
 
+## 实际效果
+
+两篇公开论文，端到端折射成完整的 prism 产物——主笔记 · 幻灯 deck · 图表截图 · 互联 MOC——都在 [`examples/showcase/`](examples/showcase/run-attention/)：
+
+| 论文 | 笔记 | Deck | 产出方式 |
+|------|------|------|----------|
+| **Transformer** —— *Attention Is All You Need* | [Transformer.md](examples/showcase/run-attention/vault/papers/Showcase/Transformer.md) | 35 页 | coordinator 串行驱动 |
+| **Mamba** —— *Selective State Spaces* | [Mamba.md](examples/showcase/run-attention/vault/papers/Showcase/Mamba.md) | 39 页 | 真实的 A/B/C 并行 subagent 扇出，再由 coordinator 复核归并 |
+
+<p align="center">
+  <img src="examples/showcase/run-attention/preview/02-architecture.png" width="49%" alt="Transformer deck — 架构页">
+  <img src="examples/showcase/run-attention/preview/mamba-03-downstream.png" width="49%" alt="Mamba deck — 结果页">
+</p>
+
+两篇共享同一个 `Showcase` 阅读队列 MOC 和全局幻灯片库——跨论文的索引累积，已实证。渲染出的 PDF/PPTX 已 gitignore 以保持仓库轻量；用一条 `marp` 命令即可逐篇重生成（见 showcase 的 [README](examples/showcase/run-attention/README.md)）。
+
+---
+
 ## 为什么是 prism？
 
 单篇体验固然不错，但 prism 存在的真正理由在于**规模化**——把 100 篇论文变成一个知识库，而不是 100 个互不相干的转储。
@@ -258,7 +276,7 @@ deck 流水线（`make a deck`）跑五个阶段——**默认并行**：
 
 ## 项目状态
 
-**v0.1.0** —— 可用，并已在真实论文上跑过。笔记/幻灯/图谱产物和绑定都已稳定；skill 的*内部* prompt、阶段接线和配置键随着持续打磨仍可能调整。测试套件 **76 项检查、零外部依赖**（`python3 tests/test_prism.py`）。见 [CHANGELOG.md](CHANGELOG.md)。
+**v0.1.0** —— 可用，并已在真实论文上跑过。笔记/幻灯/图谱产物和绑定都已稳定；skill 的*内部* prompt、阶段接线和配置键随着持续打磨仍可能调整。测试套件 **132 项检查、零外部依赖**（`python3 tests/test_prism.py`）。见 [CHANGELOG.md](CHANGELOG.md)。
 
 经过对抗式验证打磨：针对验证中发现的头号失败模式（多行结果表里**编造 / 张冠李戴的数字**），加固了数字单元格溯源、禁止编造 baseline、baseline 行核对、跨表「最佳」按 delta-from-baseline 排序、以及保留原文措辞力度等规则。
 
